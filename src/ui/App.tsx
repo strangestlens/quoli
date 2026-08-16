@@ -13,7 +13,7 @@ import { analyze } from '../game/rules.ts';
 import type { ShareMeta } from '../game/share.ts';
 import { loadDay, loadRules, pruneOldDays, saveDay } from '../game/storage.ts';
 import { Board } from './Board.tsx';
-import { computeGeometry } from './geometry.ts';
+import { computeGeometry, growWindow, type Window } from './geometry.ts';
 import { Header } from './Header.tsx';
 import { ShareSheet } from './ShareSheet.tsx';
 import { Tray } from './Tray.tsx';
@@ -57,9 +57,21 @@ export function App() {
   );
 
   const panel = usePanelSize(panelRef);
+
+  // The rendered window only ever grows while a board is in play. Recomputing
+  // it from the board each time would re-centre the grid on every placement,
+  // sliding tiles out from under the player mid-solve. Reset it (null) when
+  // the board is wiped. growWindow is idempotent, so StrictMode's double
+  // render is harmless.
+  const windowRef = useRef<Window | null>(null);
+  const gridWindow = useMemo(() => {
+    windowRef.current = growWindow(windowRef.current, state.board);
+    return windowRef.current;
+  }, [state.board]);
+
   const geometry = useMemo(
-    () => computeGeometry(state.board, panel.w, panel.h),
-    [state.board, panel.w, panel.h],
+    () => computeGeometry(gridWindow, panel.w, panel.h),
+    [gridWindow, panel.w, panel.h],
   );
 
   useEffect(() => pruneOldDays(), []);
@@ -125,12 +137,14 @@ export function App() {
     setConfirmingReroll(false);
     drag.clearSelection();
     wasComplete.current = false;
+    windowRef.current = null;
     setState((s) => ({ ...s, rollIndex: s.rollIndex + 1, board: EMPTY_BOARD }));
   };
 
   const clearBoard = () => {
     drag.clearSelection();
     wasComplete.current = false;
+    windowRef.current = null;
     setState((s) => ({ ...s, board: EMPTY_BOARD }));
   };
 
@@ -138,6 +152,7 @@ export function App() {
     setDayIsStale(false);
     setSheetOpen(false);
     wasComplete.current = false;
+    windowRef.current = null;
     setState(initialState());
   };
 

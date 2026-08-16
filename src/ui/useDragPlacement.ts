@@ -12,6 +12,12 @@ interface Gesture {
   startX: number;
   startY: number;
   dragging: boolean;
+  /** Where in the tile the grab landed, so it doesn't jump on pickup. */
+  grabDX: number;
+  grabDY: number;
+  /** Touch only: raise the tile clear of the finger covering it. */
+  lift: number;
+  size: number;
 }
 
 interface Args {
@@ -26,7 +32,7 @@ interface Args {
 }
 
 export interface DragPlacement {
-  /** Tile under the finger, hidden in place while its ghost flies. */
+  /** Tile under the pointer, hidden in place while its ghost flies. */
   draggingTileId: TileId | null;
   /** Tile armed by tapping, waiting for a destination. */
   selectedTileId: TileId | null;
@@ -42,13 +48,24 @@ export interface DragPlacement {
 }
 
 /**
+ * Where the dragged tile's centre sits for a given pointer position.
+ *
+ * The single source of truth for the whole gesture: the ghost is drawn here
+ * and the drop cell is read from here, so the highlight can never disagree
+ * with where the tile actually lands.
+ */
+function ghostCentre(g: Gesture, x: number, y: number): { x: number; y: number } {
+  return { x: x - g.grabDX, y: y - g.grabDY - g.lift };
+}
+
+/**
  * Placement by drag or by tap, on one pointer-event pipeline.
  *
  * Not HTML5 drag-and-drop, which does not work on touch at all, and not a drag
  * library — those model sortable lists, and this is a free-form snapping grid.
  *
  * Tapping is a first-class path, not a fallback: on a phone, tap-tile then
- * tap-cell is usually faster and more accurate than dragging, and it is the
+ * tap-cell is often faster and more accurate than dragging, and it is the
  * route that works without fine motor control.
  */
 export function useDragPlacement({
@@ -74,32 +91,27 @@ export function useDragPlacement({
     setSelectedState(tileId);
   }, []);
 
-  // The ghost floats above the finger so a thumb never covers the tile being
-  // placed — and the drop target is read from the ghost's centre rather than
-  // the finger's, so what you see is where it lands.
-  const ghostSize = Math.max(geometry.cell, 40);
-  const lift = ghostSize * 0.9;
-
   const moveGhost = useCallback(
-    (x: number, y: number) => {
+    (g: Gesture, x: number, y: number) => {
       const el = ghostRef.current;
       if (!el) return;
-      el.style.transform = `translate3d(${x - ghostSize / 2}px, ${y - ghostSize / 2 - lift}px, 0)`;
+      const c = ghostCentre(g, x, y);
+      el.style.transform = `translate3d(${c.x - g.size / 2}px, ${c.y - g.size / 2}px, 0)`;
     },
-    [ghostRef, ghostSize, lift],
+    [ghostRef],
   );
 
   const targetCell = useCallback(
-    (x: number, y: number): Coord | null => {
+    (g: Gesture, x: number, y: number): Coord | null => {
       const grid = gridRef.current;
       const panel = panelRef.current;
       if (!grid || !panel) return null;
 
-      const aimY = y - lift;
-      if (!isInside(panel.getBoundingClientRect(), x, aimY)) return null;
-      return cellFromClient(grid.getBoundingClientRect(), geometry, x, aimY);
+      const c = ghostCentre(g, x, y);
+      if (!isInside(panel.getBoundingClientRect(), c.x, c.y)) return null;
+      return cellFromClient(grid.getBoundingClientRect(), geometry, c.x, c.y);
     },
-    [geometry, gridRef, lift, panelRef],
+    [geometry, gridRef, panelRef],
   );
 
   const endGesture = useCallback(() => {
@@ -108,23 +120,37 @@ export function useDragPlacement({
     setHoverCell(null);
   }, []);
 
-  const onTilePointerDown = useCallback((tileId: TileId, e: ReactPointerEvent<HTMLElement>) => {
-    if (gesture.current) return;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // NotFoundError when the pointer is already gone. The gesture still
-      // works off the element's own listeners; it just won't survive the
-      // finger leaving the tile.
-    }
-    gesture.current = {
-      tileId,
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      dragging: false,
-    };
-  }, []);
+  const onTilePointerDown = useCallback(
+    (tileId: TileId, e: ReactPointerEvent<HTMLElement>) => {
+      if (gesture.current) return;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // NotFoundError when the pointer is already gone. The gesture still
+        // works off the element's own listeners; it just won't survive the
+        // pointer leaving the tile.
+      }
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const size = Math.max(geometry.cell, 40);
+
+      gesture.current = {
+        tileId,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        dragging: false,
+        grabDX: e.clientX - (rect.left + rect.width / 2),
+        grabDY: e.clientY - (rect.top + rect.height / 2),
+        // A finger hides the tile it is holding; a mouse cursor does not.
+        // Lifting under a mouse just puts the tile a cell away from where
+        // the player is pointing.
+        lift: e.pointerType === 'touch' ? size * 0.9 : 0,
+        size,
+      };
+    },
+    [geometry.cell],
+  );
 
   const onTilePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLElement>) => {
@@ -138,9 +164,9 @@ export function useDragPlacement({
         setSelection(null);
       }
 
-      moveGhost(e.clientX, e.clientY);
+      moveGhost(g, e.clientX, e.clientY);
 
-      const next = targetCell(e.clientX, e.clientY);
+      const next = targetCell(g, e.clientX, e.clientY);
       setHoverCell((prev) => {
         if (prev === next) return prev;
         if (prev && next && prev.c === next.c && prev.r === next.r) return prev;
@@ -184,7 +210,7 @@ export function useDragPlacement({
         return;
       }
 
-      const at = targetCell(e.clientX, e.clientY);
+      const at = targetCell(g, e.clientX, e.clientY);
       if (at) onPlace(g.tileId, at);
       else onReturnToTray(g.tileId);
 

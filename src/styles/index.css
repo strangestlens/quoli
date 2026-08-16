@@ -153,6 +153,12 @@ body {
   display: grid;
   place-items: center;
   pointer-events: none;
+  /* `.cell` is positioned, and positioned elements paint above non-positioned
+     in-flow siblings whatever the DOM order — so without this the transparent
+     cells sit on top of the tiles and swallow every press. Tray tiles have no
+     cell over them, which is why only placed tiles were unpickable. */
+  position: relative;
+  z-index: 1;
 }
 
 /* ---------- tiles ---------- */

@@ -380,12 +380,20 @@ body {
   color: var(--muted);
 }
 
+.sheet-note-warn {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .share-preview {
   margin: 6px 0 2px;
   padding: 0;
   overflow-x: auto;
   text-align: center;
   white-space: pre;
+  /* Selectable so it can be copied by hand if the clipboard is blocked. */
+  user-select: text;
+  -webkit-user-select: text;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 19px;
   line-height: 1.1;

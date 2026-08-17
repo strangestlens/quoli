@@ -13,7 +13,7 @@ interface Props {
 type Format = 'shape' | 'letters' | 'ascii';
 
 export function ShareSheet({ board, letters, meta, onClose }: Props) {
-  const [copied, setCopied] = useState<Format | null>(null);
+  const [status, setStatus] = useState<{ format: Format; ok: boolean } | null>(null);
 
   const texts: Record<Format, string> = {
     shape: shapeShare(board, meta),
@@ -21,13 +21,20 @@ export function ShareSheet({ board, letters, meta, onClose }: Props) {
     ascii: asciiShare(board, letters, meta),
   };
 
-  const copy = (format: Format) => {
-    copyText(texts[format]);
-    setCopied(format);
-    window.setTimeout(() => setCopied(null), 1800);
+  const copy = async (format: Format) => {
+    // Report what actually happened rather than assuming success — a copy
+    // can genuinely fail outside a secure context.
+    const ok = await copyText(texts[format]);
+    setStatus({ format, ok });
+    window.setTimeout(() => setStatus(null), 2400);
   };
 
-  const label = (format: Format, text: string) => (copied === format ? 'Copied' : text);
+  const failed = status !== null && !status.ok;
+
+  const label = (format: Format, text: string) => {
+    if (status?.format !== format) return text;
+    return status.ok ? 'Copied' : "Couldn't copy";
+  };
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -51,9 +58,15 @@ export function ShareSheet({ board, letters, meta, onClose }: Props) {
           {label('shape', 'Copy result')}
         </button>
 
-        <p className="sheet-note">
-          Everyone gets the same dice today, so the shape keeps it a fair fight.
-        </p>
+        {failed ? (
+          <p className="sheet-note sheet-note-warn">
+            The clipboard is blocked here. Select the grid above and copy it by hand.
+          </p>
+        ) : (
+          <p className="sheet-note">
+            Everyone gets the same dice today, so the shape keeps it a fair fight.
+          </p>
+        )}
 
         <div className="sheet-secondary">
           <button type="button" className="btn btn-quiet" onClick={() => copy('letters')}>

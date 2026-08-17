@@ -25,6 +25,18 @@ npm install
 npm run dev
 ```
 
+The dev server listens on the LAN, so a phone on the same Wi-Fi can reach the
+address Vite prints as `Network:`. For anything gated on a **secure context** —
+the Clipboard API, and later the Web Share API — plain http on a LAN address
+does not qualify, and copy will fall back or fail. Serve over TLS instead:
+
+```bash
+npm run dev:https
+```
+
+The certificate is self-signed, so Safari warns once: *Show Details → visit this
+website*. Production is HTTPS, so this only matters in development.
+
 ```bash
 npm test
 ```

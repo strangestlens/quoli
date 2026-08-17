@@ -6,15 +6,15 @@ import { cellFromClient, isInside, type GridGeometry } from './geometry.ts';
 /** Movement past this many px means "drag"; anything less is a tap. */
 const DRAG_THRESHOLD = 8;
 
+/** Slight swell so the tile reads as picked up rather than pasted down. */
+const GHOST_SCALE = 1.06;
+
 interface Gesture {
   tileId: TileId;
   pointerId: number;
   startX: number;
   startY: number;
   dragging: boolean;
-  /** Where in the tile the grab landed, so it doesn't jump on pickup. */
-  grabDX: number;
-  grabDY: number;
   /** Touch only: raise the tile clear of the finger covering it. */
   lift: number;
   size: number;
@@ -53,9 +53,13 @@ export interface DragPlacement {
  * The single source of truth for the whole gesture: the ghost is drawn here
  * and the drop cell is read from here, so the highlight can never disagree
  * with where the tile actually lands.
+ *
+ * The tile rides centred on the pointer rather than keeping the offset it was
+ * grabbed at — under a mouse that means the tile is exactly where you are
+ * pointing, and the translucent face lets you see the cell you are aiming at.
  */
 function ghostCentre(g: Gesture, x: number, y: number): { x: number; y: number } {
-  return { x: x - g.grabDX, y: y - g.grabDY - g.lift };
+  return { x, y: y - g.lift };
 }
 
 /**
@@ -96,7 +100,10 @@ export function useDragPlacement({
       const el = ghostRef.current;
       if (!el) return;
       const c = ghostCentre(g, x, y);
-      el.style.transform = `translate3d(${c.x - g.size / 2}px, ${c.y - g.size / 2}px, 0)`;
+      // scale() must come after translate3d() here: transforms apply
+      // right-to-left, so the tile scales about its own centre and the
+      // translation stays in unscaled pixels.
+      el.style.transform = `translate3d(${c.x - g.size / 2}px, ${c.y - g.size / 2}px, 0) scale(${GHOST_SCALE})`;
     },
     [ghostRef],
   );
@@ -131,7 +138,6 @@ export function useDragPlacement({
         // pointer leaving the tile.
       }
 
-      const rect = e.currentTarget.getBoundingClientRect();
       const size = Math.max(geometry.cell, 40);
 
       gesture.current = {
@@ -140,8 +146,6 @@ export function useDragPlacement({
         startX: e.clientX,
         startY: e.clientY,
         dragging: false,
-        grabDX: e.clientX - (rect.left + rect.width / 2),
-        grabDY: e.clientY - (rect.top + rect.height / 2),
         // A finger hides the tile it is holding; a mouse cursor does not.
         // Lifting under a mouse just puts the tile a cell away from where
         // the player is pointing.

@@ -224,8 +224,9 @@ body {
   pointer-events: none;
   visibility: hidden;
   opacity: 0;
-  /* Separate from `transform`, which the drag hook writes every frame. */
-  scale: 1.06;
+  /* The lift scale lives in the transform the drag hook writes, NOT in the
+     standalone `scale` property — that composes outside `transform` and would
+     multiply the translation, drifting the tile further the further you drag. */
   box-shadow:
     0 0 0 1px var(--tile-edge),
     var(--shadow-lift);
@@ -233,7 +234,9 @@ body {
 
 .ghost[data-active] {
   visibility: visible;
-  opacity: 1;
+  /* Translucent so the cell being aimed at reads through the tile riding
+     on the pointer. */
+  opacity: 0.72;
 }
 
 /* ---------- tray + status ---------- */

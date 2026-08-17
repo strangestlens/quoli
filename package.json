@@ -15,10 +15,12 @@
     "deploy": "npm run build && wrangler pages deploy dist --project-name=quoli --branch=main --commit-dirty=true"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.117.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260817.1",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

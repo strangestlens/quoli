@@ -10,6 +10,7 @@ import {
 import type { TileId } from '../game/dice.ts';
 import {
   canReroll,
+  customSource,
   dailySource,
   lettersFor,
   parseSearch,
@@ -17,11 +18,13 @@ import {
 } from '../game/puzzle.ts';
 import { puzzleNumber, todayKey } from '../game/roll.ts';
 import { analyze } from '../game/rules.ts';
+import { setCode, type ScannedSet } from '../game/scan.ts';
 import type { ShareMeta, ShareSubject } from '../game/share.ts';
 import { loadPlay, loadRules, pruneOldPlays, savePlay } from '../game/storage.ts';
 import { Board } from './Board.tsx';
 import { computeGeometry, growWindow, type Window } from './geometry.ts';
 import { Header } from './Header.tsx';
+import { ScanSheet } from './ScanSheet.tsx';
 import { ShareSheet } from './ShareSheet.tsx';
 import { Tray } from './Tray.tsx';
 import { useDragPlacement } from './useDragPlacement.ts';
@@ -65,6 +68,7 @@ export function App() {
   const [confirmingReroll, setConfirmingReroll] = useState(false);
   const [dayIsStale, setDayIsStale] = useState(false);
   const [setCodeWarning, setSetCodeWarning] = useState(badSetCode);
+  const [photo, setPhoto] = useState<File | null>(null);
 
   const rules = useMemo(loadRules, []);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -196,6 +200,29 @@ export function App() {
     window.location.href = window.location.pathname;
   };
 
+  /**
+   * A scanned set becomes a normal custom set, reached by its own link — so
+   * the same navigation handles playing it here and sending it to a friend.
+   */
+  const acceptScan = (scanned: ScannedSet, prefill: boolean) => {
+    const code = setCode(scanned.letters);
+    const source = customSource(code);
+    if (!source) return;
+
+    // Prefilling needs no extra URL state: seed the saved board and let the
+    // normal load path find it.
+    if (prefill) {
+      savePlay(source, {
+        rollIndex: 0,
+        board: scanned.board,
+        solvedRollIndex: null,
+        solvedAt: null,
+      });
+    }
+
+    window.location.href = `${window.location.pathname}?set=${code}`;
+  };
+
   const subject: ShareSubject =
     state.source.kind === 'daily'
       ? {
@@ -216,7 +243,7 @@ export function App() {
 
   return (
     <div className="app">
-      <Header source={state.source} />
+      <Header source={state.source} onPhoto={setPhoto} />
 
       {setCodeWarning && (
         <button type="button" className="banner" onClick={() => setSetCodeWarning(false)}>
@@ -296,6 +323,10 @@ export function App() {
       >
         {ghostLetter}
       </div>
+
+      {photo && (
+        <ScanSheet photo={photo} onClose={() => setPhoto(null)} onAccept={acceptScan} />
+      )}
 
       {sheetOpen && (
         <ShareSheet

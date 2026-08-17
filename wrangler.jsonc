@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "quoli",
+  "compatibility_date": "2026-08-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": "dist",
+
+  // Per-IP daily scan counters. See functions/api/scan.ts — this deters
+  // casual abuse of a paid endpoint rather than enforcing an exact quota.
+  "kv_namespaces": [
+    {
+      "binding": "SCAN_LIMITS",
+      "id": "028e21a78a244b74b983c5835b2ea126"
+    }
+  ]
+}

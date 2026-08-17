@@ -48,6 +48,14 @@ export interface ScannedSet {
   readonly board: Board;
   /** Dice the model wasn't sure about — surfaced first in the read-back. */
   readonly lowConfidence: readonly TileId[];
+  /**
+   * The same dice as normalised tiles, in TileId order.
+   *
+   * Correcting a letter in the read-back can change where it sorts, and so
+   * which TileId it holds — so the UI edits these and re-runs validateScan
+   * rather than trying to patch `letters` and `board` in place.
+   */
+  readonly tiles: readonly ScannedTile[];
 }
 
 export type ScanResult =
@@ -128,14 +136,20 @@ export function validateScan(response: unknown): ScanResult {
   let board: Board = EMPTY_BOARD;
   const letters: string[] = [];
   const lowConfidence: TileId[] = [];
+  const normalised: ScannedTile[] = [];
 
   ordered.forEach((tile, tileId) => {
-    letters.push(tile.letter.toUpperCase());
-    board = place(board, tileId, { c: tile.col - minC, r: tile.row - minR });
+    const letter = tile.letter.toUpperCase();
+    const col = tile.col - minC;
+    const row = tile.row - minR;
+
+    letters.push(letter);
+    board = place(board, tileId, { c: col, r: row });
+    normalised.push({ letter, col, row, confidence: tile.confidence });
     if (tile.confidence === 'low') lowConfidence.push(tileId);
   });
 
-  return { ok: true, value: { layout, letters, board, lowConfidence } };
+  return { ok: true, value: { layout, letters, board, lowConfidence, tiles: normalised } };
 }
 
 function isScanResponse(value: unknown): value is ScanResponse {

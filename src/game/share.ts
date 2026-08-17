@@ -1,7 +1,6 @@
 import { bounds, tileAt, type Board } from './board.ts';
 
-/** Set once there's a domain. Omitted from shares while empty. */
-export const SHARE_URL = '';
+export const SHARE_URL = 'https://quoli.pages.dev';
 
 const FILLED = '\u{1F7E9}'; // 🟩
 const EMPTY = '\u{2B1C}'; // ⬜
@@ -9,26 +8,45 @@ const EMPTY = '\u{2B1C}'; // ⬜
 const FULLWIDTH_A = 0xff21; // Ａ
 const IDEOGRAPHIC_SPACE = '　';
 
+/** What the share is about: a dated puzzle, or someone's own dice. */
+export type ShareSubject =
+  | { readonly kind: 'daily'; readonly puzzleNumber: number; readonly rollIndex: number }
+  | { readonly kind: 'custom'; readonly code: string };
+
 export interface ShareMeta {
-  readonly puzzleNumber: number;
-  /** 0-based internally; shares display it 1-based. */
-  readonly rollIndex: number;
+  readonly subject: ShareSubject;
   readonly wordCount: number;
   readonly tileCount: number;
 }
 
 function header(meta: ShareMeta): string {
-  return `Quoli #${meta.puzzleNumber} · roll ${meta.rollIndex + 1}`;
+  const { subject } = meta;
+  return subject.kind === 'daily'
+    ? `Quoli #${subject.puzzleNumber} · roll ${subject.rollIndex + 1}`
+    : 'Quoli · custom set';
 }
 
-function withFooter(lines: string[]): string {
-  if (SHARE_URL) lines.push('', SHARE_URL);
+/**
+ * A custom set's link carries the dice in it, so whoever opens it gets the
+ * same twelve letters and an empty board. The daily needs no code — the date
+ * already picks the puzzle.
+ */
+function link(meta: ShareMeta): string {
+  if (!SHARE_URL) return '';
+  return meta.subject.kind === 'custom'
+    ? `${SHARE_URL}/?set=${meta.subject.code}`
+    : SHARE_URL;
+}
+
+function withFooter(lines: string[], meta: ShareMeta): string {
+  const url = link(meta);
+  if (url) lines.push('', url);
   return lines.join('\n');
 }
 
 /**
  * Renders the board's tight bounding box row by row.
- * `cell` maps an occupied tile to a string, or undefined to a blank.
+ * `filled` maps an occupied tile to a string; `blank` fills the gaps.
  */
 function renderGrid(
   board: Board,
@@ -54,16 +72,20 @@ function renderGrid(
  * The default share: silhouette only.
  *
  * Everyone gets the same puzzle each day, so posting the letters spoils it.
- * This carries the shape and the stats without giving the answer away.
+ * This carries the shape and the stats without giving the answer away — and
+ * for a custom set, the link hands over the dice without the solution.
  */
 export function shapeShare(board: Board, meta: ShareMeta): string {
   const grid = renderGrid(board, () => FILLED, EMPTY);
-  return withFooter([
-    header(meta),
-    `${meta.tileCount} letters · ${meta.wordCount} ${meta.wordCount === 1 ? 'word' : 'words'}`,
-    '',
-    ...grid,
-  ]);
+  return withFooter(
+    [
+      header(meta),
+      `${meta.tileCount} letters · ${meta.wordCount} ${meta.wordCount === 1 ? 'word' : 'words'}`,
+      '',
+      ...grid,
+    ],
+    meta,
+  );
 }
 
 /**
@@ -80,7 +102,7 @@ export function letterShare(
   meta: ShareMeta,
 ): string {
   const grid = renderGrid(board, (tileId) => toFullwidth(letters[tileId] ?? '?'), IDEOGRAPHIC_SPACE);
-  return withFooter([header(meta), '', ...grid]);
+  return withFooter([header(meta), '', ...grid], meta);
 }
 
 /** Plain ASCII fallback, meant to be pasted inside a code fence. */
@@ -90,7 +112,7 @@ export function asciiShare(
   meta: ShareMeta,
 ): string {
   const grid = renderGrid(board, (tileId) => letters[tileId] ?? '?', '.');
-  return withFooter([header(meta), '', ...grid]);
+  return withFooter([header(meta), '', ...grid], meta);
 }
 
 function toFullwidth(ch: string): string {

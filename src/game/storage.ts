@@ -1,17 +1,30 @@
 import { deserializeBoard, serializeBoard, type Board, type SerializedBoard } from './board.ts';
-import { dayKeyToMs, MS_PER_DAY, type DayKey } from './roll.ts';
+import type { PuzzleSource } from './puzzle.ts';
+import { dayKeyToMs, MS_PER_DAY } from './roll.ts';
 import { PHASE_1_RULES, type RuleSet } from './rules.ts';
 
 const NS = 'quoli:v1';
 const MAX_AGE_DAYS = 90;
 
-export interface DayRecord {
-  /** Which re-roll the player is currently on. */
+const DAILY_PREFIX = `${NS}:play:`;
+const CUSTOM_PREFIX = `${NS}:custom:`;
+
+export interface StoredPlay {
+  /** Which re-roll the player is on. Always 0 for a custom set. */
+  rollIndex: number;
+  board: Board;
+  /** Which roll they finished on, or null if still going. */
+  solvedRollIndex: number | null;
+  solvedAt: number | null;
+}
+
+interface PlayRecord {
   readonly rollIndex: number;
   readonly board: SerializedBoard;
-  /** Which roll they finished on, or null if still going. */
   readonly solvedRollIndex: number | null;
   readonly solvedAt: number | null;
+  /** Written on every save; drives pruning for keys with no date in them. */
+  readonly updatedAt: number;
 }
 
 /**
@@ -51,10 +64,15 @@ function write(key: string, value: unknown): void {
   }
 }
 
-const dayKeyFor = (dayKey: DayKey) => `${NS}:play:${dayKey}`;
+/** Daily play is keyed by its UTC date; a custom set by its own letters. */
+function keyFor(source: PuzzleSource): string {
+  return source.kind === 'daily'
+    ? `${DAILY_PREFIX}${source.dayKey}`
+    : `${CUSTOM_PREFIX}${source.code}`;
+}
 
-export function loadDay(dayKey: DayKey): { rollIndex: number; board: Board; solvedRollIndex: number | null; solvedAt: number | null } | null {
-  const rec = read<DayRecord>(dayKeyFor(dayKey));
+export function loadPlay(source: PuzzleSource): StoredPlay | null {
+  const rec = read<PlayRecord>(keyFor(source));
   if (!rec || typeof rec.rollIndex !== 'number' || !Array.isArray(rec.board)) return null;
 
   return {
@@ -65,17 +83,19 @@ export function loadDay(dayKey: DayKey): { rollIndex: number; board: Board; solv
   };
 }
 
-export function saveDay(
-  dayKey: DayKey,
-  state: { rollIndex: number; board: Board; solvedRollIndex: number | null; solvedAt: number | null },
+export function savePlay(
+  source: PuzzleSource,
+  state: StoredPlay,
+  now: number = Date.now(),
 ): void {
-  const rec: DayRecord = {
+  const rec: PlayRecord = {
     rollIndex: state.rollIndex,
     board: serializeBoard(state.board),
     solvedRollIndex: state.solvedRollIndex,
     solvedAt: state.solvedAt,
+    updatedAt: now,
   };
-  write(dayKeyFor(dayKey), rec);
+  write(keyFor(source), rec);
 }
 
 export function loadRules(): RuleSet {
@@ -87,20 +107,41 @@ export function saveRules(rules: RuleSet): void {
   write(`${NS}:rules`, rules);
 }
 
-/** Day records outlive their usefulness; keep the last 90 days for streaks. */
-export function pruneOldDays(now: number = Date.now()): void {
+/**
+ * Drop plays nobody is coming back to, keeping the last 90 days for streaks.
+ *
+ * Daily keys carry their own date, but a custom set's key is its letters — so
+ * `updatedAt` is what ages those out. A record written before `updatedAt`
+ * existed falls back to its date, and a custom one without either is kept
+ * until its next save stamps it.
+ */
+export function pruneOldPlays(now: number = Date.now()): void {
   if (!store) return;
   const cutoff = now - MAX_AGE_DAYS * MS_PER_DAY;
-  const prefix = `${NS}:play:`;
 
   try {
     const doomed: string[] = [];
+
     for (let i = 0; i < store.length; i++) {
       const key = store.key(i);
-      if (!key || !key.startsWith(prefix)) continue;
-      const ms = dayKeyToMs(key.slice(prefix.length));
-      if (Number.isFinite(ms) && ms < cutoff) doomed.push(key);
+      if (!key) continue;
+
+      const isDaily = key.startsWith(DAILY_PREFIX);
+      if (!isDaily && !key.startsWith(CUSTOM_PREFIX)) continue;
+
+      const rec = read<PlayRecord>(key);
+      const touched =
+        typeof rec?.updatedAt === 'number'
+          ? rec.updatedAt
+          : isDaily
+            ? dayKeyToMs(key.slice(DAILY_PREFIX.length))
+            : null;
+
+      if (touched !== null && Number.isFinite(touched) && touched < cutoff) {
+        doomed.push(key);
+      }
     }
+
     for (const key of doomed) store.removeItem(key);
   } catch {
     // Nothing here is load-bearing.

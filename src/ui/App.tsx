@@ -8,10 +8,17 @@ import {
   type Coord,
 } from '../game/board.ts';
 import type { TileId } from '../game/dice.ts';
-import { puzzleNumber, rollFor, todayKey, type DayKey } from '../game/roll.ts';
+import {
+  canReroll,
+  dailySource,
+  lettersFor,
+  parseSearch,
+  type PuzzleSource,
+} from '../game/puzzle.ts';
+import { puzzleNumber, todayKey } from '../game/roll.ts';
 import { analyze } from '../game/rules.ts';
-import type { ShareMeta } from '../game/share.ts';
-import { loadDay, loadRules, pruneOldDays, saveDay } from '../game/storage.ts';
+import type { ShareMeta, ShareSubject } from '../game/share.ts';
+import { loadPlay, loadRules, pruneOldPlays, savePlay } from '../game/storage.ts';
 import { Board } from './Board.tsx';
 import { computeGeometry, growWindow, type Window } from './geometry.ts';
 import { Header } from './Header.tsx';
@@ -20,40 +27,54 @@ import { Tray } from './Tray.tsx';
 import { useDragPlacement } from './useDragPlacement.ts';
 
 interface PlayState {
-  dayKey: DayKey;
-  rollIndex: number;
+  source: PuzzleSource;
   board: BoardModel;
   /** First roll this player finished, kept for a future streak. */
   solvedRollIndex: number | null;
   solvedAt: number | null;
 }
 
-function initialState(): PlayState {
-  const dayKey = todayKey();
-  const saved = loadDay(dayKey);
-  return saved !== null
-    ? { dayKey, ...saved }
-    : { dayKey, rollIndex: 0, board: EMPTY_BOARD, solvedRollIndex: null, solvedAt: null };
+function initialState(): { state: PlayState; badSetCode: boolean } {
+  const { source: fromUrl, badSetCode } = parseSearch(window.location.search);
+  const saved = loadPlay(fromUrl);
+
+  // Daily play is keyed by date, not by roll, so a restored record may be on a
+  // later re-roll than the bare URL implies.
+  const source =
+    fromUrl.kind === 'daily' && saved !== null && saved.rollIndex !== fromUrl.rollIndex
+      ? dailySource(fromUrl.dayKey, saved.rollIndex)
+      : fromUrl;
+
+  return {
+    state: {
+      source,
+      board: saved?.board ?? EMPTY_BOARD,
+      solvedRollIndex: saved?.solvedRollIndex ?? null,
+      solvedAt: saved?.solvedAt ?? null,
+    },
+    badSetCode,
+  };
 }
 
+const rollIndexOf = (source: PuzzleSource) => (source.kind === 'daily' ? source.rollIndex : 0);
+
 export function App() {
-  const [state, setState] = useState<PlayState>(initialState);
+  const [{ state: firstState, badSetCode }] = useState(initialState);
+  const [state, setState] = useState<PlayState>(firstState);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [confirmingReroll, setConfirmingReroll] = useState(false);
   const [dayIsStale, setDayIsStale] = useState(false);
+  const [setCodeWarning, setSetCodeWarning] = useState(badSetCode);
 
   const rules = useMemo(loadRules, []);
   const panelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
 
-  const roll = useMemo(
-    () => rollFor(state.dayKey, state.rollIndex),
-    [state.dayKey, state.rollIndex],
-  );
+  const letters = useMemo(() => lettersFor(state.source), [state.source]);
   const analysis = useMemo(
-    () => analyze(state.board, roll.letters, rules),
-    [state.board, roll.letters, rules],
+    () => analyze(state.board, letters, rules),
+    [state.board, letters, rules],
   );
 
   const panel = usePanelSize(panelRef);
@@ -74,10 +95,15 @@ export function App() {
     [gridWindow, panel.w, panel.h],
   );
 
-  useEffect(() => pruneOldDays(), []);
+  useEffect(() => pruneOldPlays(), []);
 
   useEffect(() => {
-    saveDay(state.dayKey, state);
+    savePlay(state.source, {
+      rollIndex: rollIndexOf(state.source),
+      board: state.board,
+      solvedRollIndex: state.solvedRollIndex,
+      solvedAt: state.solvedAt,
+    });
   }, [state]);
 
   // Fire the share sheet on the transition into completeness, not on every
@@ -88,7 +114,7 @@ export function App() {
       setSheetOpen(true);
       setState((s) =>
         s.solvedRollIndex === null
-          ? { ...s, solvedRollIndex: s.rollIndex, solvedAt: Date.now() }
+          ? { ...s, solvedRollIndex: rollIndexOf(s.source), solvedAt: Date.now() }
           : s,
       );
     }
@@ -96,15 +122,18 @@ export function App() {
   }, [analysis.complete]);
 
   // A tab left open across UTC midnight is otherwise stranded on yesterday.
+  // A custom set has no date, so it never goes stale.
+  const dayKey = state.source.kind === 'daily' ? state.source.dayKey : null;
   useEffect(() => {
-    const check = () => setDayIsStale(todayKey() !== state.dayKey);
+    if (dayKey === null) return;
+    const check = () => setDayIsStale(todayKey() !== dayKey);
     const id = window.setInterval(check, 60_000);
     document.addEventListener('visibilitychange', check);
     return () => {
       window.clearInterval(id);
       document.removeEventListener('visibilitychange', check);
     };
-  }, [state.dayKey]);
+  }, [dayKey]);
 
   const handlePlace = useCallback((tileId: TileId, at: Coord) => {
     setState((s) => ({ ...s, board: place(s.board, tileId, at) }));
@@ -128,48 +157,72 @@ export function App() {
     onReturnToTray: handleReturnToTray,
   });
 
+  const resetBoardState = () => {
+    drag.clearSelection();
+    wasComplete.current = false;
+    windowRef.current = null;
+  };
+
   const reroll = () => {
+    if (state.source.kind !== 'daily') return;
     if (state.board.size > 0 && !confirmingReroll) {
       setConfirmingReroll(true);
       window.setTimeout(() => setConfirmingReroll(false), 3000);
       return;
     }
     setConfirmingReroll(false);
-    drag.clearSelection();
-    wasComplete.current = false;
-    windowRef.current = null;
-    setState((s) => ({ ...s, rollIndex: s.rollIndex + 1, board: EMPTY_BOARD }));
+    resetBoardState();
+    setState((s) => ({
+      ...s,
+      source: s.source.kind === 'daily' ? dailySource(s.source.dayKey, s.source.rollIndex + 1) : s.source,
+      board: EMPTY_BOARD,
+    }));
   };
 
   const clearBoard = () => {
-    drag.clearSelection();
-    wasComplete.current = false;
-    windowRef.current = null;
+    resetBoardState();
     setState((s) => ({ ...s, board: EMPTY_BOARD }));
   };
 
   const startNewDay = () => {
     setDayIsStale(false);
     setSheetOpen(false);
-    wasComplete.current = false;
-    windowRef.current = null;
-    setState(initialState());
+    resetBoardState();
+    setState(initialState().state);
   };
 
+  /** Leaving a shared set has to change the URL, or a reload lands back on it. */
+  const goToDaily = () => {
+    window.location.href = window.location.pathname;
+  };
+
+  const subject: ShareSubject =
+    state.source.kind === 'daily'
+      ? {
+          kind: 'daily',
+          puzzleNumber: puzzleNumber(state.source.dayKey),
+          rollIndex: state.source.rollIndex,
+        }
+      : { kind: 'custom', code: state.source.code };
+
   const meta: ShareMeta = {
-    puzzleNumber: puzzleNumber(state.dayKey),
-    rollIndex: state.rollIndex,
+    subject,
     wordCount: analysis.words.length,
     tileCount: state.board.size,
   };
 
   const ghostSize = Math.max(geometry.cell, 40);
-  const ghostLetter =
-    drag.draggingTileId === null ? '' : (roll.letters[drag.draggingTileId] ?? '');
+  const ghostLetter = drag.draggingTileId === null ? '' : (letters[drag.draggingTileId] ?? '');
 
   return (
     <div className="app">
-      <Header puzzleNumber={meta.puzzleNumber} rollIndex={state.rollIndex} />
+      <Header source={state.source} />
+
+      {setCodeWarning && (
+        <button type="button" className="banner" onClick={() => setSetCodeWarning(false)}>
+          That link wasn't a valid set — here's today's puzzle instead
+        </button>
+      )}
 
       {dayIsStale && (
         <button type="button" className="banner" onClick={startNewDay}>
@@ -180,7 +233,7 @@ export function App() {
       <div className="panel" ref={panelRef}>
         <Board
           board={state.board}
-          letters={roll.letters}
+          letters={letters}
           geometry={geometry}
           gridRef={gridRef}
           drag={drag}
@@ -195,7 +248,7 @@ export function App() {
 
       <Tray
         board={state.board}
-        letters={roll.letters}
+        letters={letters}
         drag={drag}
         onReturnSelected={() => {
           if (drag.selectedTileId !== null) handleReturnToTray(drag.selectedTileId);
@@ -204,12 +257,25 @@ export function App() {
       />
 
       <div className="actions">
-        <button type="button" className="btn btn-quiet" onClick={clearBoard} disabled={state.board.size === 0}>
+        <button
+          type="button"
+          className="btn btn-quiet"
+          onClick={clearBoard}
+          disabled={state.board.size === 0}
+        >
           Clear
         </button>
-        <button type="button" className="btn btn-quiet" onClick={reroll}>
-          {confirmingReroll ? 'Clear board and re-roll?' : 'Re-roll'}
-        </button>
+
+        {canReroll(state.source) ? (
+          <button type="button" className="btn btn-quiet" onClick={reroll}>
+            {confirmingReroll ? 'Clear board and re-roll?' : 'Re-roll'}
+          </button>
+        ) : (
+          <button type="button" className="btn btn-quiet" onClick={goToDaily}>
+            Today's puzzle
+          </button>
+        )}
+
         <button
           type="button"
           className="btn btn-primary"
@@ -234,7 +300,7 @@ export function App() {
       {sheetOpen && (
         <ShareSheet
           board={state.board}
-          letters={roll.letters}
+          letters={letters}
           meta={meta}
           onClose={() => setSheetOpen(false)}
         />

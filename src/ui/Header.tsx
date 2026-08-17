@@ -1,9 +1,11 @@
+import type { PuzzleSource } from '../game/puzzle.ts';
+import { puzzleNumber } from '../game/roll.ts';
+
 interface Props {
-  puzzleNumber: number;
-  rollIndex: number;
+  source: PuzzleSource;
 }
 
-export function Header({ puzzleNumber, rollIndex }: Props) {
+export function Header({ source }: Props) {
   return (
     <header className="header">
       <div className="brand">
@@ -12,9 +14,19 @@ export function Header({ puzzleNumber, rollIndex }: Props) {
         </h1>
         <p className="tagline">the only Q in the game</p>
       </div>
+
       <div className="counters">
-        <span className="puzzle-no">#{puzzleNumber}</span>
-        <span className="roll-no">roll {rollIndex + 1}</span>
+        {source.kind === 'daily' ? (
+          <>
+            <span className="puzzle-no">#{puzzleNumber(source.dayKey)}</span>
+            <span className="roll-no">roll {source.rollIndex + 1}</span>
+          </>
+        ) : (
+          <>
+            <span className="puzzle-no">custom set</span>
+            <span className="set-code">{source.code}</span>
+          </>
+        )}
       </div>
     </header>
   );

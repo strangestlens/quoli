@@ -45,7 +45,11 @@ export function ShareSheet({ board, letters, meta, onClose }: Props) {
         aria-label="Share your grid"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="sheet-title">Solved on roll {meta.rollIndex + 1}</h2>
+        <h2 className="sheet-title">
+          {meta.subject.kind === 'daily'
+            ? `Solved on roll ${meta.subject.rollIndex + 1}`
+            : 'Solved a custom set'}
+        </h2>
         <p className="sheet-sub">
           {meta.tileCount} letters · {meta.wordCount} {meta.wordCount === 1 ? 'word' : 'words'}
         </p>
@@ -61,6 +65,11 @@ export function ShareSheet({ board, letters, meta, onClose }: Props) {
         {failed ? (
           <p className="sheet-note sheet-note-warn">
             The clipboard is blocked here. Select the grid above and copy it by hand.
+          </p>
+        ) : meta.subject.kind === 'custom' ? (
+          <p className="sheet-note">
+            The link carries your dice — whoever opens it gets the same twelve and an empty
+            board.
           </p>
         ) : (
           <p className="sheet-note">

@@ -110,6 +110,13 @@ body {
   color: var(--muted);
 }
 
+.set-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 /* ---------- board ---------- */
 
 .panel {

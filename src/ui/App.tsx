@@ -20,15 +20,31 @@ import {
 import { puzzleNumber, todayKey } from '../game/roll.ts';
 import { analyze } from '../game/rules.ts';
 import { setCode, type ScannedSet } from '../game/scan.ts';
+import { decodeSolve, encodeSolve } from '../game/solve.ts';
 import type { ShareMeta, ShareSubject } from '../game/share.ts';
 import { loadPlay, loadRules, pruneOldPlays, savePlay } from '../game/storage.ts';
 import { Board } from './Board.tsx';
 import { computeGeometry, growWindow, type Window } from './geometry.ts';
 import { Header } from './Header.tsx';
+import { RevealView } from './RevealView.tsx';
 import { ScanSheet } from './ScanSheet.tsx';
 import { ShareSheet } from './ShareSheet.tsx';
 import { Tray } from './Tray.tsx';
 import { useDragPlacement } from './useDragPlacement.ts';
+
+/**
+ * A `?solve=` link opens somebody else's finished grid rather than a game, so
+ * the choice is made once up front. An unreadable code falls through to the
+ * daily — a broken link should still land somewhere playable.
+ */
+export function App() {
+  const [solve] = useState(() => {
+    const code = new URLSearchParams(window.location.search).get('solve');
+    return code === null ? null : decodeSolve(code);
+  });
+
+  return solve ? <RevealView solve={solve} /> : <GameView />;
+}
 
 interface PlayState {
   source: PuzzleSource;
@@ -68,7 +84,7 @@ function initialState(): { state: PlayState; badSetCode: boolean } {
 
 const rollIndexOf = (source: PuzzleSource) => (source.kind === 'daily' ? source.rollIndex : 0);
 
-export function App() {
+function GameView() {
   const [{ state: firstState, badSetCode }] = useState(initialState);
   const [state, setState] = useState<PlayState>(firstState);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -260,6 +276,7 @@ export function App() {
     subject,
     wordCount: analysis.words.length,
     tileCount: state.board.size,
+    solveCode: analysis.complete ? encodeSolve(state.board, letters) : undefined,
   };
 
   const ghostSize = Math.max(geometry.cell, 40);

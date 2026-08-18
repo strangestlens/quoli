@@ -73,6 +73,36 @@ describe('daily links', () => {
   });
 });
 
+describe('solve links', () => {
+  const SOLVED: ShareMeta = { ...META, solveCode: 'N...C-APPLY-N...C-....L-....E-....R' };
+
+  it('points a finished board at itself, so the shape can be revealed', () => {
+    expect(shapeShare(SAMPLE, SOLVED)).toContain(
+      `${SHARE_URL}/?solve=N...C-APPLY-N...C-....L-....E-....R`,
+    );
+  });
+
+  it('still gives nothing away in the message itself', () => {
+    const text = shapeShare(SAMPLE, SOLVED);
+    // The grid rows above the link are silhouette only.
+    expect(text.split('\n').slice(2, 6).join('')).not.toMatch(/[A-Z]/);
+  });
+
+  it('replaces the roll link rather than sitting alongside it', () => {
+    expect(shapeShare(SAMPLE, SOLVED)).not.toContain('?roll=');
+  });
+
+  it('replaces a custom set link too', () => {
+    const solvedCustom = { ...CUSTOM, solveCode: 'AB-CD' };
+    expect(shapeShare(SAMPLE, solvedCustom)).not.toContain('?set=');
+    expect(shapeShare(SAMPLE, solvedCustom)).toContain('?solve=AB-CD');
+  });
+
+  it('falls back to the roll link while a board is unfinished', () => {
+    expect(shapeShare(SAMPLE, { ...META, solveCode: undefined })).toContain('?roll=2');
+  });
+});
+
 describe('custom sets', () => {
   it('titles the share as a custom set rather than a puzzle number', () => {
     expect(shapeShare(SAMPLE, CUSTOM)).toContain('Quoli · custom set');

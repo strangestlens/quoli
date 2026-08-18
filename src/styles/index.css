@@ -349,6 +349,13 @@ body {
   border-radius: 12px;
   padding: 13px 10px;
   min-height: 46px;
+  /* Some buttons are anchors — "Play these dice" navigates — so the link's
+     underline and start-alignment have to be reset here rather than at each
+     call site. */
+  display: grid;
+  place-items: center;
+  text-align: center;
+  text-decoration: none;
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -646,5 +653,38 @@ body {
 }
 
 .tray[data-intro] .tile {
+  animation: tray-drop 675ms cubic-bezier(0.2, 0.75, 0.3, 1) backwards;
+}
+
+/* ---------- reveal view ---------- */
+
+.reveal-grid {
+  /* Sized in CSS so the grid needs no measuring: as wide as it can be without
+     overflowing a phone, and never larger than a comfortable tile. */
+  --reveal-cell: min(56px, calc((100vw - 44px) / var(--cols)));
+  display: grid;
+  gap: 3px;
+  justify-content: center;
+}
+
+.reveal-gap {
+  width: var(--reveal-cell);
+  height: var(--reveal-cell);
+}
+
+.reveal-tile {
+  width: var(--reveal-cell);
+  height: var(--reveal-cell);
+  font-size: calc(var(--reveal-cell) * 0.5);
+  cursor: default;
+  pointer-events: none;
+}
+
+.reveal-letter {
+  display: block;
+}
+
+/* Letters arrive on the same diagonal sweep the dice do in the tray. */
+.reveal-grid[data-revealed] .reveal-letter {
   animation: tray-drop 675ms cubic-bezier(0.2, 0.75, 0.3, 1) backwards;
 }

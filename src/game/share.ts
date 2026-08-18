@@ -17,6 +17,12 @@ export interface ShareMeta {
   readonly subject: ShareSubject;
   readonly wordCount: number;
   readonly tileCount: number;
+  /**
+   * Set once a board is finished. The message carries the shape; the link
+   * carries the grid itself, so the recipient can reveal it or take the dice
+   * on themselves.
+   */
+  readonly solveCode?: string | undefined;
 }
 
 function header(meta: ShareMeta): string {
@@ -33,6 +39,7 @@ function header(meta: ShareMeta): string {
  */
 function link(meta: ShareMeta): string {
   if (!SHARE_URL) return '';
+  if (meta.solveCode) return `${SHARE_URL}/?solve=${meta.solveCode}`;
   if (meta.subject.kind === 'custom') return `${SHARE_URL}/?set=${meta.subject.code}`;
   return meta.subject.rollIndex === 0
     ? SHARE_URL

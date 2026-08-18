@@ -148,10 +148,17 @@ function GameView() {
 
   // Fire the share sheet on the transition into completeness, not on every
   // render where the board happens to be complete.
+  //
+  // Not while another sheet is up, though. Tiles can't move behind a backdrop,
+  // so the only way completeness changes there is the rules changing under it —
+  // and relaxing a rule shouldn't be congratulated, least of all by throwing a
+  // second sheet over the one being used. The solve is still recorded; only the
+  // celebration is withheld, and Share stays available.
+  const modalOpen = helpOpen || photo !== null;
   const wasComplete = useRef(analysis.complete);
   useEffect(() => {
     if (analysis.complete && !wasComplete.current) {
-      setSheetOpen(true);
+      if (!modalOpen) setSheetOpen(true);
       setState((s) =>
         s.solvedRollIndex === null
           ? { ...s, solvedRollIndex: rollIndexOf(s.source), solvedAt: Date.now() }
@@ -159,7 +166,7 @@ function GameView() {
       );
     }
     wasComplete.current = analysis.complete;
-  }, [analysis.complete]);
+  }, [analysis.complete, modalOpen]);
 
   // A tab left open across UTC midnight is otherwise stranded on yesterday.
   // A custom set has no date, so it never goes stale.

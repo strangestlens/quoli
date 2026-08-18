@@ -38,7 +38,7 @@ const ROW = grid(['ACCELLNNPPRY']);
 
 describe('the generated word list', () => {
   it('is filtered to what this game can actually play', () => {
-    expect(WORDS.size).toBeGreaterThan(140_000);
+    expect(WORDS.size).toBeGreaterThan(155_000);
     for (const word of WORDS) {
       expect(word).toMatch(/^[a-pr-z]+$/); // lowercase, and never a Q
       expect(word.length).toBeGreaterThanOrEqual(2);
@@ -46,11 +46,22 @@ describe('the generated word list', () => {
     }
   });
 
-  it('carries the allowlist on top of the source', () => {
-    // ENABLE is a 1990s list; these are ours.
-    for (const word of ['risc', 'email', 'blog', 'emoji', 'meme', 'zen']) {
+  it('carries the modern words SCOWL brings and ENABLE lacks', () => {
+    for (const word of ['email', 'blog', 'emoji', 'selfie', 'meme', 'online', 'podcast']) {
       expect(WORDS.has(word)).toBe(true);
     }
+  });
+
+  it('carries our own allowlist, which no source has', () => {
+    for (const word of ['risc', 'app', 'wifi', 'zen']) {
+      expect(WORDS.has(word)).toBe(true);
+    }
+  });
+
+  it('keeps words ENABLE has that SCOWL does not', () => {
+    // `nan` came up in a real game and is absent from SCOWL, which is why
+    // both lists are merged rather than one replacing the other.
+    expect(WORDS.has('nan')).toBe(true);
   });
 
   it('still knows ordinary words', () => {

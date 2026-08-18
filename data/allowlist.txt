@@ -1,35 +1,13 @@
-# Words ENABLE lacks. One per line, lowercase; # starts a comment.
-# Merged on top of the source list, so these survive swapping ENABLE out.
-# ENABLE was compiled in the 1990s, which is most of what shows up here.
+# Words none of the source lists carry. One per line, lowercase; # starts a
+# comment. Merged on top, so anything here survives swapping a source out.
+#
+# Keep this short. Most of what it once held is now covered by SCOWL — if a
+# word looks like it belongs in a general lexicon, check before adding it.
 
 # came up in real play
 risc
 
-# computing and the internet
-blog
-blogs
-email
-emails
-emailed
-emoji
-emojis
-internet
-podcast
-podcasts
-selfie
-selfies
-smartphone
-smartphones
-texted
-texting
-website
-websites
+# absent from both ENABLE and SCOWL
+app
 wifi
-
-# in common use, absent from ENABLE
-meme
-memes
-vape
-vapes
-vaped
 zen

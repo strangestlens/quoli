@@ -54,8 +54,10 @@ interface PlayState {
   solvedAt: number | null;
 }
 
-function initialState(): { state: PlayState; badSetCode: boolean } {
-  const { source: fromUrl, badSetCode, explicitRoll } = parseSearch(window.location.search);
+function initialState(): { state: PlayState; badSetCode: boolean; explicitPuzzle: boolean } {
+  const { source: fromUrl, badSetCode, explicitRoll, explicitPuzzle } = parseSearch(
+    window.location.search,
+  );
   const saved = loadPlay(fromUrl);
 
   // Daily play is keyed by date, not by roll, so the saved record knows which
@@ -79,13 +81,14 @@ function initialState(): { state: PlayState; badSetCode: boolean } {
       solvedAt: saved?.solvedAt ?? null,
     },
     badSetCode,
+    explicitPuzzle,
   };
 }
 
 const rollIndexOf = (source: PuzzleSource) => (source.kind === 'daily' ? source.rollIndex : 0);
 
 function GameView() {
-  const [{ state: firstState, badSetCode }] = useState(initialState);
+  const [{ state: firstState, badSetCode, explicitPuzzle }] = useState(initialState);
   const [state, setState] = useState<PlayState>(firstState);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [confirmingReroll, setConfirmingReroll] = useState(false);
@@ -152,7 +155,7 @@ function GameView() {
   // A custom set has no date, so it never goes stale.
   const dayKey = state.source.kind === 'daily' ? state.source.dayKey : null;
   useEffect(() => {
-    if (dayKey === null) return;
+    if (dayKey === null || explicitPuzzle) return;
     const check = () => setDayIsStale(todayKey() !== dayKey);
     const id = window.setInterval(check, 60_000);
     document.addEventListener('visibilitychange', check);
@@ -160,7 +163,7 @@ function GameView() {
       window.clearInterval(id);
       document.removeEventListener('visibilitychange', check);
     };
-  }, [dayKey]);
+  }, [dayKey, explicitPuzzle]);
 
   const handlePlace = useCallback((tileId: TileId, at: Coord) => {
     setState((s) => ({ ...s, board: place(s.board, tileId, at) }));
@@ -276,8 +279,20 @@ function GameView() {
     subject,
     wordCount: analysis.words.length,
     tileCount: state.board.size,
-    solveCode: analysis.complete ? encodeSolve(state.board, letters) : undefined,
+    solveCode: analysis.complete
+      ? encodeSolve(
+          state.board,
+          letters,
+          state.source.kind === 'daily'
+            ? { puzzleNumber: puzzleNumber(state.source.dayKey), rollIndex: state.source.rollIndex }
+            : null,
+        )
+      : undefined,
   };
+
+  // Opened by name and not the current day: say so rather than letting someone
+  // wonder why their daily looks unfamiliar.
+  const isPastPuzzle = explicitPuzzle && dayKey !== null && dayKey !== todayKey();
 
   const ghostSize = Math.max(geometry.cell, 40);
   const ghostLetter = drag.draggingTileId === null ? '' : (letters[drag.draggingTileId] ?? '');
@@ -290,6 +305,12 @@ function GameView() {
         <button type="button" className="banner" onClick={() => setSetCodeWarning(false)}>
           That link wasn't a valid set — here's today's puzzle instead
         </button>
+      )}
+
+      {isPastPuzzle && (
+        <a className="banner" href={window.location.pathname}>
+          Puzzle #{puzzleNumber(dayKey!)} — not today's. Play today's →
+        </a>
       )}
 
       {dayIsStale && (

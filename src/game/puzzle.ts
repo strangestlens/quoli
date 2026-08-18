@@ -1,4 +1,4 @@
-import { rollFor, todayKey, type DayKey } from './roll.ts';
+import { dayKeyForPuzzle, rollFor, todayKey, type DayKey } from './roll.ts';
 import { parseSetCode } from './scan.ts';
 
 /**
@@ -56,6 +56,11 @@ export interface ParsedSearch {
    * rather than on wherever the recipient happened to leave off.
    */
   readonly explicitRoll: boolean;
+  /**
+   * The URL named a specific past puzzle. Today's rollover prompt has to stay
+   * quiet in that case — the player asked for an old one on purpose.
+   */
+  readonly explicitPuzzle: boolean;
 }
 
 /** Rolls beyond this are certainly a mangled link, not a real game. */
@@ -86,16 +91,46 @@ export function parseSearch(search: string, now: number = Date.now()): ParsedSea
   if (code !== null) {
     const custom = customSource(code);
     return custom
-      ? { source: custom, badSetCode: false, explicitRoll: false }
-      : { source: dailySource(todayKey(now)), badSetCode: true, explicitRoll: false };
+      ? { source: custom, badSetCode: false, explicitRoll: false, explicitPuzzle: false }
+      : {
+          source: dailySource(todayKey(now)),
+          badSetCode: true,
+          explicitRoll: false,
+          explicitPuzzle: false,
+        };
   }
 
   const { rollIndex, explicit } = rollIndexFrom(params.get('roll'));
+  const puzzle = puzzleNumberFrom(params.get('puzzle'));
+
+  // A named puzzle can be any day, past or future — rollFor is pure, so its
+  // dice rebuild exactly. That is what lets a shared grid keep its identity
+  // instead of decaying into "custom set" the next morning.
   return {
-    source: dailySource(todayKey(now), rollIndex),
+    source: dailySource(puzzle === null ? todayKey(now) : dayKeyForPuzzle(puzzle), rollIndex),
     badSetCode: false,
     explicitRoll: explicit,
+    explicitPuzzle: puzzle !== null,
   };
+}
+
+/** Puzzles beyond this are a mangled link, not a real day. */
+const MAX_PUZZLE = 16383;
+
+function puzzleNumberFrom(raw: string | null): number | null {
+  if (raw === null) return null;
+  const puzzle = Number(raw);
+  return Number.isInteger(puzzle) && puzzle >= 1 && puzzle <= MAX_PUZZLE ? puzzle : null;
+}
+
+/** The URL for a specific daily, used by shared grids to keep their identity. */
+export function puzzlePath(
+  pathname: string,
+  puzzleNumber: number,
+  rollIndex: number,
+): string {
+  const roll = rollIndex === 0 ? '' : `&roll=${rollIndex + 1}`;
+  return `${pathname}?puzzle=${puzzleNumber}${roll}`;
 }
 
 /** The URL for a given roll — bare on the first, since the date says it all. */

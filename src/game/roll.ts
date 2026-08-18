@@ -48,6 +48,17 @@ export function puzzleNumber(dayKey: DayKey): number {
   return Math.round((dayKeyToMs(dayKey) - dayKeyToMs(PUZZLE_EPOCH)) / MS_PER_DAY) + 1;
 }
 
+/**
+ * The day a puzzle number refers to.
+ *
+ * The inverse of puzzleNumber, and the reason a past puzzle needs no
+ * backdating: rollFor is pure, so any day's dice can be rebuilt exactly
+ * whenever they are asked for.
+ */
+export function dayKeyForPuzzle(puzzleNumber: number): DayKey {
+  return dayKeyFromMs(dayKeyToMs(PUZZLE_EPOCH) + (puzzleNumber - 1) * MS_PER_DAY);
+}
+
 /** Epoch ms of the next UTC midnight — when the puzzle turns over. */
 export function nextRolloverMs(now: number = Date.now()): number {
   return dayKeyToMs(dayKeyFromMs(now)) + MS_PER_DAY;

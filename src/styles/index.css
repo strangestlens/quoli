@@ -402,6 +402,11 @@ body {
   border: none;
   border-radius: 10px;
   padding: 10px;
+  /* Banners are sometimes anchors — "play today's" navigates — so reset the
+     link underline and start-alignment here rather than at each call site. */
+  display: block;
+  text-align: center;
+  text-decoration: none;
   background: var(--accent-soft);
   color: var(--accent);
   font-family: inherit;

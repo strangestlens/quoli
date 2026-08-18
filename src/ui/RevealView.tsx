@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { bounds, tileAt } from '../game/board.ts';
+import { puzzlePath } from '../game/puzzle.ts';
 import { setCode } from '../game/scan.ts';
 import type { Solve } from '../game/solve.ts';
 import { extractWords } from '../game/words.ts';
@@ -31,6 +32,12 @@ export function RevealView({ solve }: Props) {
     [solve],
   );
 
+  // A grid from the daily keeps its identity, so the recipient plays the very
+  // same puzzle rather than the letters rehomed as a nameless custom set.
+  const playHref = solve.origin
+    ? puzzlePath('', solve.origin.puzzleNumber, solve.origin.rollIndex)
+    : `?set=${setCode(solve.letters)}`;
+
   const cells = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -61,6 +68,20 @@ export function RevealView({ solve }: Props) {
           </h1>
           <p className="tagline">someone sent you their grid</p>
         </div>
+
+        <div className="counters">
+          {solve.origin ? (
+            <>
+              <span className="puzzle-no">#{solve.origin.puzzleNumber}</span>
+              <span className="roll-no">roll {solve.origin.rollIndex + 1}</span>
+            </>
+          ) : (
+            <>
+              <span className="puzzle-no">custom set</span>
+              <span className="set-code">{setCode(solve.letters)}</span>
+            </>
+          )}
+        </div>
       </header>
 
       <div className="panel">
@@ -80,7 +101,7 @@ export function RevealView({ solve }: Props) {
       </p>
 
       <div className="actions">
-        <a className="btn btn-primary" href={`?set=${setCode(solve.letters)}`}>
+        <a className="btn btn-primary" href={playHref}>
           Play these dice
         </a>
         {!revealed && (

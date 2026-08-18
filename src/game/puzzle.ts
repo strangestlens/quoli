@@ -50,20 +50,55 @@ export interface ParsedSearch {
   readonly source: PuzzleSource;
   /** A `?set=` was present but unusable — worth telling the player. */
   readonly badSetCode: boolean;
+  /**
+   * The URL named a roll outright. It overrides whatever roll was saved,
+   * which is what makes a shared link land on the roll that was solved
+   * rather than on wherever the recipient happened to leave off.
+   */
+  readonly explicitRoll: boolean;
+}
+
+/** Rolls beyond this are certainly a mangled link, not a real game. */
+const MAX_ROLL = 999;
+
+/**
+ * `?roll=` is one-based for humans; rolls count from zero internally.
+ * Anything unparseable falls back to the first roll rather than erroring —
+ * a bad roll in a link should still give you a playable puzzle.
+ */
+function rollIndexFrom(raw: string | null): { rollIndex: number; explicit: boolean } {
+  if (raw === null) return { rollIndex: 0, explicit: false };
+  const roll = Number(raw);
+  if (!Number.isInteger(roll) || roll < 1 || roll > MAX_ROLL) {
+    return { rollIndex: 0, explicit: false };
+  }
+  return { rollIndex: roll - 1, explicit: true };
 }
 
 /**
- * Resolve the puzzle from the URL. `?set=ACCELLNNPPRY` opens that set;
- * anything else falls through to today's daily.
+ * Resolve the puzzle from the URL. `?set=ACCELLNNPPRY` opens that set,
+ * `?roll=3` opens today's third roll, and anything else is today's first.
  */
 export function parseSearch(search: string, now: number = Date.now()): ParsedSearch {
-  const code = new URLSearchParams(search).get('set');
-  if (code === null) {
-    return { source: dailySource(todayKey(now)), badSetCode: false };
+  const params = new URLSearchParams(search);
+  const code = params.get('set');
+
+  if (code !== null) {
+    const custom = customSource(code);
+    return custom
+      ? { source: custom, badSetCode: false, explicitRoll: false }
+      : { source: dailySource(todayKey(now)), badSetCode: true, explicitRoll: false };
   }
 
-  const custom = customSource(code);
-  return custom
-    ? { source: custom, badSetCode: false }
-    : { source: dailySource(todayKey(now)), badSetCode: true };
+  const { rollIndex, explicit } = rollIndexFrom(params.get('roll'));
+  return {
+    source: dailySource(todayKey(now), rollIndex),
+    badSetCode: false,
+    explicitRoll: explicit,
+  };
+}
+
+/** The URL for a given roll — bare on the first, since the date says it all. */
+export function rollPath(pathname: string, rollIndex: number): string {
+  return rollIndex === 0 ? pathname : `${pathname}?roll=${rollIndex + 1}`;
 }

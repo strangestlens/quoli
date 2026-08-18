@@ -15,18 +15,42 @@ const codes = (board: Board, letters: readonly string[], rules = PHASE_1_RULES) 
   analyze(board, letters, rules).violations.map((v) => v.code);
 
 describe('phase 1 rules', () => {
-  it('completes as soon as all twelve dice are down, however they are arranged', () => {
+  it('completes on twelve interlocked dice, whatever they spell', () => {
     const result = analyze(twelveInARow, twelveLetters, PHASE_1_RULES);
     expect(result.violations).toEqual([]);
     expect(result.complete).toBe(true);
   });
 
-  it('does not care about islands or stray letters', () => {
+  it('still does not care what the words are', () => {
+    // No dictionary yet: gibberish in one contiguous run is a finished board.
+    expect(codes(twelveInARow, 'XKZBVFJWQGHY'.split(''))).toEqual([]);
+  });
+
+  it('refuses to call scattered islands a solve', () => {
+    // The trigger for the solved sheet — twelve dice dropped anywhere used to
+    // count, which fired it long before the player had built anything.
     const scattered: Board = Array.from({ length: 12 }).reduce<Board>(
       (b, _, i) => place(b, i, { c: i * 3, r: i * 3 }),
       EMPTY_BOARD,
     );
-    expect(codes(scattered, twelveLetters)).toEqual([]);
+    expect(codes(scattered, twelveLetters)).toEqual(['disconnected']);
+    expect(analyze(scattered, twelveLetters, PHASE_1_RULES).complete).toBe(false);
+  });
+
+  it('refuses a board that is one tile short of joined up', () => {
+    const almost: Board = Array.from({ length: 12 }).reduce<Board>(
+      (b, _, i) => place(b, i, i === 11 ? { c: 5, r: 5 } : { c: i, r: 0 }),
+      EMPTY_BOARD,
+    );
+    expect(analyze(almost, twelveLetters, PHASE_1_RULES).complete).toBe(false);
+  });
+
+  it('accepts an L-shaped board — connection is not a straight line', () => {
+    const bent: Board = Array.from({ length: 12 }).reduce<Board>(
+      (b, _, i) => place(b, i, i < 6 ? { c: i, r: 0 } : { c: 0, r: i - 5 }),
+      EMPTY_BOARD,
+    );
+    expect(analyze(bent, twelveLetters, PHASE_1_RULES).complete).toBe(true);
   });
 
   it('is incomplete while dice remain in the tray', () => {

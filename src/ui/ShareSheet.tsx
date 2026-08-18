@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import type { Board } from '../game/board.ts';
-import { asciiShare, letterShare, shapeShare, type ShareMeta } from '../game/share.ts';
+import {
+  letterGrid,
+  letterShare,
+  shapeGrid,
+  shapeShare,
+  type ShareMeta,
+} from '../game/share.ts';
 import { copyText } from './clipboard.ts';
 
 interface Props {
@@ -10,31 +16,29 @@ interface Props {
   onClose: () => void;
 }
 
-type Format = 'shape' | 'letters' | 'ascii';
+type Format = 'shape' | 'letters';
 
 export function ShareSheet({ board, letters, meta, onClose }: Props) {
+  // The preview is driven by the same choice as the copy, so what you see is
+  // always what lands on the clipboard.
+  const [format, setFormat] = useState<Format>('shape');
   const [status, setStatus] = useState<{ format: Format; ok: boolean } | null>(null);
 
-  const texts: Record<Format, string> = {
-    shape: shapeShare(board, meta),
-    letters: letterShare(board, letters, meta),
-    ascii: asciiShare(board, letters, meta),
-  };
+  const preview =
+    format === 'shape' ? shapeGrid(board).join('\n') : letterGrid(board, letters).join('\n');
 
-  const copy = async (format: Format) => {
+  const copy = async () => {
+    const text =
+      format === 'shape' ? shapeShare(board, meta) : letterShare(board, letters, meta);
     // Report what actually happened rather than assuming success — a copy
     // can genuinely fail outside a secure context.
-    const ok = await copyText(texts[format]);
+    const ok = await copyText(text);
     setStatus({ format, ok });
     window.setTimeout(() => setStatus(null), 2400);
   };
 
-  const failed = status !== null && !status.ok;
-
-  const label = (format: Format, text: string) => {
-    if (status?.format !== format) return text;
-    return status.ok ? 'Copied' : "Couldn't copy";
-  };
+  const showing = status?.format === format ? status : null;
+  const buttonLabel = showing ? (showing.ok ? 'Copied' : "Couldn't copy") : 'Copy';
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -54,17 +58,38 @@ export function ShareSheet({ board, letters, meta, onClose }: Props) {
           {meta.tileCount} letters · {meta.wordCount} {meta.wordCount === 1 ? 'word' : 'words'}
         </p>
 
-        <pre className="share-preview" aria-hidden="true">
-          {texts.shape.split('\n').slice(2).join('\n').trim()}
-        </pre>
+        <div className="segmented" role="group" aria-label="What to share">
+          <button
+            type="button"
+            className="segment"
+            data-on={format === 'shape' || undefined}
+            onClick={() => setFormat('shape')}
+          >
+            Shape only
+          </button>
+          <button
+            type="button"
+            className="segment"
+            data-on={format === 'letters' || undefined}
+            onClick={() => setFormat('letters')}
+          >
+            With letters
+          </button>
+        </div>
 
-        <button type="button" className="btn btn-primary" onClick={() => copy('shape')}>
-          {label('shape', 'Copy result')}
+        <pre className="share-preview">{preview}</pre>
+
+        <button type="button" className="btn btn-primary" onClick={copy}>
+          {buttonLabel}
         </button>
 
-        {failed ? (
+        {showing && !showing.ok ? (
           <p className="sheet-note sheet-note-warn">
             The clipboard is blocked here. Select the grid above and copy it by hand.
+          </p>
+        ) : format === 'letters' ? (
+          <p className="sheet-note sheet-note-warn">
+            This gives the answer away. Save it for people who have already played.
           </p>
         ) : meta.subject.kind === 'custom' ? (
           <p className="sheet-note">
@@ -76,15 +101,6 @@ export function ShareSheet({ board, letters, meta, onClose }: Props) {
             Everyone gets the same dice today, so the shape keeps it a fair fight.
           </p>
         )}
-
-        <div className="sheet-secondary">
-          <button type="button" className="btn btn-quiet" onClick={() => copy('letters')}>
-            {label('letters', 'Copy with letters')}
-          </button>
-          <button type="button" className="btn btn-quiet" onClick={() => copy('ascii')}>
-            {label('ascii', 'Copy as plain text')}
-          </button>
-        </div>
 
         <button type="button" className="btn btn-ghost" onClick={onClose}>
           Keep tinkering

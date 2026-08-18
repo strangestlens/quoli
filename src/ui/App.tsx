@@ -14,6 +14,7 @@ import {
   dailySource,
   lettersFor,
   parseSearch,
+  rollPath,
   type PuzzleSource,
 } from '../game/puzzle.ts';
 import { puzzleNumber, todayKey } from '../game/roll.ts';
@@ -38,20 +39,26 @@ interface PlayState {
 }
 
 function initialState(): { state: PlayState; badSetCode: boolean } {
-  const { source: fromUrl, badSetCode } = parseSearch(window.location.search);
+  const { source: fromUrl, badSetCode, explicitRoll } = parseSearch(window.location.search);
   const saved = loadPlay(fromUrl);
 
-  // Daily play is keyed by date, not by roll, so a restored record may be on a
-  // later re-roll than the bare URL implies.
-  const source =
-    fromUrl.kind === 'daily' && saved !== null && saved.rollIndex !== fromUrl.rollIndex
-      ? dailySource(fromUrl.dayKey, saved.rollIndex)
-      : fromUrl;
+  // Daily play is keyed by date, not by roll, so the saved record knows which
+  // roll it belongs to. A roll named in the URL wins — that is what lets a
+  // shared link open the roll that was actually solved.
+  const savedRoll = saved?.rollIndex ?? 0;
+  const rollIndex =
+    fromUrl.kind === 'daily' && !explicitRoll ? savedRoll : rollIndexOf(fromUrl);
+  const source = fromUrl.kind === 'daily' ? dailySource(fromUrl.dayKey, rollIndex) : fromUrl;
+
+  // A saved board is a set of positions for one particular roll's letters.
+  // Carrying it onto a different roll would keep the shape but silently swap
+  // every letter under it.
+  const boardBelongsHere = fromUrl.kind !== 'daily' || rollIndex === savedRoll;
 
   return {
     state: {
       source,
-      board: saved?.board ?? EMPTY_BOARD,
+      board: boardBelongsHere ? (saved?.board ?? EMPTY_BOARD) : EMPTY_BOARD,
       solvedRollIndex: saved?.solvedRollIndex ?? null,
       solvedAt: saved?.solvedAt ?? null,
     },
@@ -167,6 +174,24 @@ export function App() {
     windowRef.current = null;
   };
 
+  /**
+   * Move to another roll of today's puzzle, forwards or back.
+   *
+   * The URL is kept in step so a reload lands on the same roll and the address
+   * bar always names what is on screen. The board is cleared because it holds
+   * positions for the roll it was built on.
+   */
+  const goToRoll = (rollIndex: number) => {
+    if (state.source.kind !== 'daily' || rollIndex < 0) return;
+    resetBoardState();
+    window.history.replaceState(null, '', rollPath(window.location.pathname, rollIndex));
+    setState((s) => ({
+      ...s,
+      source: s.source.kind === 'daily' ? dailySource(s.source.dayKey, rollIndex) : s.source,
+      board: EMPTY_BOARD,
+    }));
+  };
+
   const reroll = () => {
     if (state.source.kind !== 'daily') return;
     if (state.board.size > 0 && !confirmingReroll) {
@@ -175,12 +200,11 @@ export function App() {
       return;
     }
     setConfirmingReroll(false);
-    resetBoardState();
-    setState((s) => ({
-      ...s,
-      source: s.source.kind === 'daily' ? dailySource(s.source.dayKey, s.source.rollIndex + 1) : s.source,
-      board: EMPTY_BOARD,
-    }));
+    goToRoll(state.source.rollIndex + 1);
+  };
+
+  const previousRoll = () => {
+    if (state.source.kind === 'daily') goToRoll(state.source.rollIndex - 1);
   };
 
   const clearBoard = () => {
@@ -243,7 +267,7 @@ export function App() {
 
   return (
     <div className="app">
-      <Header source={state.source} onPhoto={setPhoto} />
+      <Header source={state.source} onPhoto={setPhoto} onPreviousRoll={previousRoll} />
 
       {setCodeWarning && (
         <button type="button" className="banner" onClick={() => setSetCodeWarning(false)}>

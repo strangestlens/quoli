@@ -24,7 +24,7 @@ export interface RuleSet {
 
 export const PHASE_1_RULES: RuleSet = {
   requireAllTilesPlaced: true,
-  requireConnected: false,
+  requireConnected: true,
   requireWordsFormed: false,
   minWordLength: 2,
   requireValidWords: false,

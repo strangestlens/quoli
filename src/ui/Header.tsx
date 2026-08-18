@@ -4,9 +4,10 @@ import { puzzleNumber } from '../game/roll.ts';
 interface Props {
   source: PuzzleSource;
   onPhoto: (photo: File) => void;
+  onPreviousRoll: () => void;
 }
 
-export function Header({ source, onPhoto }: Props) {
+export function Header({ source, onPhoto, onPreviousRoll }: Props) {
   return (
     <header className="header">
       <div className="brand">
@@ -40,7 +41,21 @@ export function Header({ source, onPhoto }: Props) {
           {source.kind === 'daily' ? (
             <>
               <span className="puzzle-no">#{puzzleNumber(source.dayKey)}</span>
-              <span className="roll-no">roll {source.rollIndex + 1}</span>
+              {/* Re-rolling used to be a one-way door. Tapping the counter walks
+                  back a roll at a time, so nobody is stranded on a set they
+                  can't solve — and roll 1 is always a few taps away. */}
+              {source.rollIndex > 0 ? (
+                <button
+                  type="button"
+                  className="roll-back"
+                  onClick={onPreviousRoll}
+                  aria-label={`Back to roll ${source.rollIndex}`}
+                >
+                  <span aria-hidden="true">‹</span> roll {source.rollIndex + 1}
+                </button>
+              ) : (
+                <span className="roll-no">roll 1</span>
+              )}
             </>
           ) : (
             <>

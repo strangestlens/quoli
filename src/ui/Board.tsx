@@ -44,6 +44,11 @@ export function Board({ board, letters, geometry, gridRef, drag }: Props) {
       style={{
         gridColumn: coord.c - originC + 1,
         gridRow: coord.r - originR + 1,
+        // Painter's order, not placement order. Tiles cast their shadow down
+        // and to the right, so a tile has to sit above its neighbours in that
+        // direction or the shadows land under the wrong pieces and the grid
+        // looks stacked in whatever sequence it happened to be built.
+        zIndex: 1 + cols + rows - (coord.c - originC) - (coord.r - originR),
       }}
     >
       <Tile

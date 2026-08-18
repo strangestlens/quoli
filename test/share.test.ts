@@ -1,18 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_BOARD, place } from '../src/game/board.ts';
 import {
-  asciiShare,
+  letterGrid,
   letterShare,
+  shapeGrid,
   shapeShare,
   SHARE_URL,
   type ShareMeta,
 } from '../src/game/share.ts';
 import { LETTERS, SAMPLE } from './fixtures.ts';
 
+/** Solved on the second roll, so the link has to carry the roll. */
 const META: ShareMeta = {
   subject: { kind: 'daily', puzzleNumber: 228, rollIndex: 1 },
   wordCount: 3,
   tileCount: 10,
+};
+
+const FIRST_ROLL: ShareMeta = {
+  ...META,
+  subject: { kind: 'daily', puzzleNumber: 228, rollIndex: 0 },
 };
 
 const CUSTOM: ShareMeta = {
@@ -33,7 +40,7 @@ describe('shapeShare', () => {
         '⬜🟩⬜⬜🟩',
         '⬜🟩⬜⬜🟩',
         '',
-        SHARE_URL,
+        `${SHARE_URL}/?roll=2`,
       ].join('\n'),
     );
   });
@@ -43,13 +50,26 @@ describe('shapeShare', () => {
   });
 
   it('displays the roll one-based', () => {
-    expect(
-      shapeShare(SAMPLE, { ...META, subject: { kind: 'daily', puzzleNumber: 228, rollIndex: 0 } }),
-    ).toContain('roll 1');
+    expect(shapeShare(SAMPLE, FIRST_ROLL)).toContain('roll 1');
   });
 
   it('says "word" for a single word', () => {
     expect(shapeShare(SAMPLE, { ...META, wordCount: 1 })).toContain('1 word\n');
+  });
+});
+
+describe('daily links', () => {
+  it('carries the roll so a friend lands on the one that was solved', () => {
+    expect(shapeShare(SAMPLE, META)).toContain(`${SHARE_URL}/?roll=2`);
+  });
+
+  it('stays bare on roll 1, where the date alone is enough', () => {
+    expect(shapeShare(SAMPLE, FIRST_ROLL)).toContain(SHARE_URL);
+    expect(shapeShare(SAMPLE, FIRST_ROLL)).not.toContain('?roll=');
+  });
+
+  it('never carries a roll for a custom set', () => {
+    expect(shapeShare(SAMPLE, CUSTOM)).not.toContain('?roll=');
   });
 });
 
@@ -69,17 +89,8 @@ describe('custom sets', () => {
     expect(text).toContain('🟩');
   });
 
-  it('links the bare site for the daily, with no code', () => {
-    expect(shapeShare(SAMPLE, META)).toContain(SHARE_URL);
-    expect(shapeShare(SAMPLE, META)).not.toContain('?set=');
-  });
-
-  it('carries the code on every format', () => {
-    for (const text of [
-      shapeShare(SAMPLE, CUSTOM),
-      letterShare(SAMPLE, LETTERS, CUSTOM),
-      asciiShare(SAMPLE, LETTERS, CUSTOM),
-    ]) {
+  it('carries the code on both formats', () => {
+    for (const text of [shapeShare(SAMPLE, CUSTOM), letterShare(SAMPLE, LETTERS, CUSTOM)]) {
       expect(text).toContain('?set=ACCELLNNPPRY');
     }
   });
@@ -96,29 +107,39 @@ describe('letterShare', () => {
         '　Ａ　　Ｏ',
         '　Ｍ　　Ｄ',
         '',
-        SHARE_URL,
+        `${SHARE_URL}/?roll=2`,
       ].join('\n'),
     );
   });
 
   it('uses only fullwidth forms and the ideographic space in the grid', () => {
-    const grid = letterShare(SAMPLE, LETTERS, META).split('\n').slice(2, 6);
-    for (const line of grid) {
+    for (const line of letterGrid(SAMPLE, LETTERS)) {
       expect(line).toMatch(/^[Ａ-Ｚ　]+$/);
     }
   });
 
   it('keeps every row the same length', () => {
-    const grid = letterShare(SAMPLE, LETTERS, META).split('\n').slice(2, 6);
+    const grid = letterGrid(SAMPLE, LETTERS);
     expect(new Set(grid.map((l) => [...l].length)).size).toBe(1);
   });
 });
 
-describe('asciiShare', () => {
-  it('is the plain-text escape hatch', () => {
-    expect(asciiShare(SAMPLE, LETTERS, META)).toBe(
-      ['Quoli #228 · roll 2', '', '.C...', 'TRAIN', '.A..O', '.M..D', '', SHARE_URL].join('\n'),
-    );
+describe('grids on their own', () => {
+  // The share sheet previews these directly rather than parsing them back out
+  // of the finished text, which used to drag the footer link into the preview.
+  it('are exactly the rows the share embeds, with no header or link', () => {
+    expect(shapeGrid(SAMPLE)).toEqual(['⬜🟩⬜⬜⬜', '🟩🟩🟩🟩🟩', '⬜🟩⬜⬜🟩', '⬜🟩⬜⬜🟩']);
+    expect(letterGrid(SAMPLE, LETTERS)).toEqual(['　Ｃ　　　', 'ＴＲＡＩＮ', '　Ａ　　Ｏ', '　Ｍ　　Ｄ']);
+  });
+
+  it('contain no link', () => {
+    for (const line of [...shapeGrid(SAMPLE), ...letterGrid(SAMPLE, LETTERS)]) {
+      expect(line).not.toContain('http');
+    }
+  });
+
+  it('are empty for an empty board', () => {
+    expect(shapeGrid(EMPTY_BOARD)).toEqual([]);
   });
 });
 
@@ -133,7 +154,6 @@ describe('empty board', () => {
 describe('bounding box', () => {
   it('is tight — no leading or trailing blank rows and columns', () => {
     const board = place(place(EMPTY_BOARD, 0, { c: 5, r: 5 }), 1, { c: 6, r: 5 });
-    const grid = shapeShare(board, META).split('\n').slice(3, 4);
-    expect(grid).toEqual(['🟩🟩']);
+    expect(shapeGrid(board)).toEqual(['🟩🟩']);
   });
 });

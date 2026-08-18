@@ -5,6 +5,7 @@ import {
   dailySource,
   lettersFor,
   parseSearch,
+  rollPath,
 } from '../src/game/puzzle.ts';
 import { rollFor } from '../src/game/roll.ts';
 
@@ -80,5 +81,39 @@ describe('parseSearch', () => {
 
   it('does not flag a missing set as broken', () => {
     expect(parseSearch('?ref=twitter', AUG_17).badSetCode).toBe(false);
+  });
+});
+
+describe('roll links', () => {
+  it('reads a roll out of the URL, one-based', () => {
+    const { source, explicitRoll } = parseSearch('?roll=4', AUG_17);
+    expect(source).toEqual(dailySource('2026-08-17', 3));
+    expect(explicitRoll).toBe(true);
+  });
+
+  it('treats a bare URL as roll 1, not as an explicit choice', () => {
+    const { source, explicitRoll } = parseSearch('', AUG_17);
+    expect(source).toEqual(dailySource('2026-08-17', 0));
+    // Not explicit, so a saved later roll still wins on reload.
+    expect(explicitRoll).toBe(false);
+  });
+
+  it('falls back to a playable puzzle on a mangled roll', () => {
+    for (const bad of ['?roll=0', '?roll=-3', '?roll=abc', '?roll=2.5', '?roll=100000']) {
+      const { source, explicitRoll } = parseSearch(bad, AUG_17);
+      expect(source).toEqual(dailySource('2026-08-17', 0));
+      expect(explicitRoll).toBe(false);
+    }
+  });
+
+  it('ignores a roll on a custom set', () => {
+    const { source } = parseSearch('?set=ACCELLNNPPRY&roll=5', AUG_17);
+    expect(source.kind).toBe('custom');
+  });
+
+  it('round-trips through rollPath', () => {
+    expect(rollPath('/', 0)).toBe('/');
+    expect(rollPath('/', 3)).toBe('/?roll=4');
+    expect(parseSearch('?roll=4', AUG_17).source).toEqual(dailySource('2026-08-17', 3));
   });
 });

@@ -28,14 +28,15 @@ function header(meta: ShareMeta): string {
 
 /**
  * A custom set's link carries the dice in it, so whoever opens it gets the
- * same twelve letters and an empty board. The daily needs no code — the date
- * already picks the puzzle.
+ * same twelve letters and an empty board. A daily link carries the roll, so
+ * a friend lands on the one that was actually solved rather than roll 1.
  */
 function link(meta: ShareMeta): string {
   if (!SHARE_URL) return '';
-  return meta.subject.kind === 'custom'
-    ? `${SHARE_URL}/?set=${meta.subject.code}`
-    : SHARE_URL;
+  if (meta.subject.kind === 'custom') return `${SHARE_URL}/?set=${meta.subject.code}`;
+  return meta.subject.rollIndex === 0
+    ? SHARE_URL
+    : `${SHARE_URL}/?roll=${meta.subject.rollIndex + 1}`;
 }
 
 function withFooter(lines: string[], meta: ShareMeta): string {
@@ -69,6 +70,19 @@ function renderGrid(
 }
 
 /**
+ * The grids on their own, for previewing exactly what a copy will contain.
+ * Exported so the share sheet doesn't have to parse them back out of the
+ * finished text — which quietly dragged the footer link into the preview.
+ */
+export function shapeGrid(board: Board): string[] {
+  return renderGrid(board, () => FILLED, EMPTY);
+}
+
+export function letterGrid(board: Board, letters: readonly string[]): string[] {
+  return renderGrid(board, (tileId) => toFullwidth(letters[tileId] ?? '?'), IDEOGRAPHIC_SPACE);
+}
+
+/**
  * The default share: silhouette only.
  *
  * Everyone gets the same puzzle each day, so posting the letters spoils it.
@@ -76,13 +90,12 @@ function renderGrid(
  * for a custom set, the link hands over the dice without the solution.
  */
 export function shapeShare(board: Board, meta: ShareMeta): string {
-  const grid = renderGrid(board, () => FILLED, EMPTY);
   return withFooter(
     [
       header(meta),
       `${meta.tileCount} letters · ${meta.wordCount} ${meta.wordCount === 1 ? 'word' : 'words'}`,
       '',
-      ...grid,
+      ...shapeGrid(board),
     ],
     meta,
   );
@@ -94,25 +107,14 @@ export function shapeShare(board: Board, meta: ShareMeta): string {
  * Fullwidth Latin capitals plus the ideographic space, because both get a
  * consistent double-width advance in the fonts iMessage, Slack and Discord
  * use — so the columns line up in proportional text where plain ASCII would
- * ragged out. Not universal; asciiShare is the escape hatch.
+ * ragged out.
  */
 export function letterShare(
   board: Board,
   letters: readonly string[],
   meta: ShareMeta,
 ): string {
-  const grid = renderGrid(board, (tileId) => toFullwidth(letters[tileId] ?? '?'), IDEOGRAPHIC_SPACE);
-  return withFooter([header(meta), '', ...grid], meta);
-}
-
-/** Plain ASCII fallback, meant to be pasted inside a code fence. */
-export function asciiShare(
-  board: Board,
-  letters: readonly string[],
-  meta: ShareMeta,
-): string {
-  const grid = renderGrid(board, (tileId) => letters[tileId] ?? '?', '.');
-  return withFooter([header(meta), '', ...grid], meta);
+  return withFooter([header(meta), '', ...letterGrid(board, letters)], meta);
 }
 
 function toFullwidth(ch: string): string {

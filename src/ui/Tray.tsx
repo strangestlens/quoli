@@ -5,9 +5,14 @@ import type { DragPlacement } from './useDragPlacement.ts';
 
 const TRAY_TILE = 46;
 
-/** Stagger and duration together stay under a second for all twelve. */
-const STAGGER_MS = 55;
-const INTRO_MS = 12 * STAGGER_MS + 300;
+/**
+ * The wave's pace is the stagger; each tile's softness is the fade. Keep FADE_MS
+ * in step with the tray-drop animation in index.css. All twelve land inside a
+ * second, which is the budget for the whole cascade.
+ */
+const STAGGER_MS = 37;
+const FADE_MS = 450;
+const INTRO_MS = 11 * STAGGER_MS + FADE_MS + 60;
 
 interface Props {
   board: Board;

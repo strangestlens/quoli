@@ -301,6 +301,11 @@ export function App() {
         board={state.board}
         letters={letters}
         drag={drag}
+        introKey={
+          state.source.kind === 'daily'
+            ? `${state.source.dayKey}:${state.source.rollIndex}`
+            : state.source.code
+        }
         onReturnSelected={() => {
           if (drag.selectedTileId !== null) handleReturnToTray(drag.selectedTileId);
           drag.clearSelection();

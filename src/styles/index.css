@@ -144,9 +144,24 @@ body {
   font-weight: 600;
 }
 
-.roll-no {
+/* The plain label and the back button have to occupy an identical box, or
+   the header jumps a pixel or two the moment a roll becomes steppable. Only
+   colour and background differ between them. */
+.roll-no,
+.roll-back {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 6px 0 4px;
+  margin-right: -6px;
+  border: none;
+  border-radius: 7px;
+  font-family: inherit;
   font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
   color: var(--muted);
+  background: none;
 }
 
 .set-code {
@@ -612,13 +627,6 @@ body {
 
 .roll-back {
   appearance: none;
-  border: none;
-  padding: 2px 6px 2px 4px;
-  margin-right: -6px;
-  border-radius: 7px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
   color: var(--accent);
   background: var(--accent-soft);
   cursor: pointer;
@@ -626,4 +634,17 @@ body {
 
 .roll-back:active {
   transform: scale(0.95);
+}
+
+/* Dice cascade in when a roll arrives, so the tray reads as twelve dice just
+   thrown rather than a static row above a start button. */
+@keyframes tray-drop {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+.tray[data-intro] .tile {
+  animation: tray-drop 300ms cubic-bezier(0.2, 0.75, 0.3, 1) backwards;
 }

@@ -18,11 +18,11 @@ import {
   type PuzzleSource,
 } from '../game/puzzle.ts';
 import { puzzleNumber, todayKey } from '../game/roll.ts';
-import { analyze } from '../game/rules.ts';
+import { analyze, rulesFor, type Settings } from '../game/rules.ts';
 import { setCode, type ScannedSet } from '../game/scan.ts';
 import { decodeSolve, encodeSolve } from '../game/solve.ts';
 import type { ShareMeta, ShareSubject } from '../game/share.ts';
-import { loadPlay, loadRules, pruneOldPlays, savePlay } from '../game/storage.ts';
+import { loadPlay, loadSettings, pruneOldPlays, savePlay, saveSettings } from '../game/storage.ts';
 import { Board } from './Board.tsx';
 import { computeGeometry, growWindow, type Window } from './geometry.ts';
 import { Header } from './Header.tsx';
@@ -31,6 +31,7 @@ import { RevealView } from './RevealView.tsx';
 import { ScanSheet } from './ScanSheet.tsx';
 import { ShareSheet } from './ShareSheet.tsx';
 import { Tray } from './Tray.tsx';
+import { useDictionary } from './useDictionary.ts';
 import { useDragPlacement } from './useDragPlacement.ts';
 
 /**
@@ -98,15 +99,22 @@ function GameView() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
 
-  const rules = useMemo(loadRules, []);
+  const [settings, setSettings] = useState<Settings>(loadSettings);
+  const rules = useMemo(() => rulesFor(settings), [settings]);
+
+  const applySettings = (next: Settings) => {
+    setSettings(next);
+    saveSettings(next);
+  };
   const panelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
 
   const letters = useMemo(() => lettersFor(state.source), [state.source]);
+  const words = useDictionary(letters, rules.requireValidWords);
   const analysis = useMemo(
-    () => analyze(state.board, letters, rules),
-    [state.board, letters, rules],
+    () => analyze(state.board, letters, rules, words.dictionary),
+    [state.board, letters, rules, words.dictionary],
   );
 
   const panel = usePanelSize(panelRef);
@@ -337,9 +345,13 @@ function GameView() {
       </div>
 
       <p className="status" aria-live="polite">
-        {analysis.complete
-          ? 'All twelve down.'
-          : (analysis.violations[0]?.message ?? 'Build a grid with all twelve.')}
+        {words.loading
+          ? 'Fetching the word list…'
+          : words.failed
+            ? "Couldn't load the word list — words aren't being checked."
+            : analysis.complete
+              ? 'All twelve down.'
+              : (analysis.violations[0]?.message ?? 'Build a grid with all twelve.')}
       </p>
 
       <Tray
@@ -398,7 +410,13 @@ function GameView() {
         {ghostLetter}
       </div>
 
-      {helpOpen && <HowToPlay onClose={() => setHelpOpen(false)} />}
+      {helpOpen && (
+        <HowToPlay
+          onClose={() => setHelpOpen(false)}
+          settings={settings}
+          onSettings={applySettings}
+        />
+      )}
 
       {photo && (
         <ScanSheet photo={photo} onClose={() => setPhoto(null)} onAccept={acceptScan} />

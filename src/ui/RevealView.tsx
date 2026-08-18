@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { bounds, tileAt } from '../game/board.ts';
 import { puzzlePath } from '../game/puzzle.ts';
+import type { Settings } from '../game/rules.ts';
 import { setCode } from '../game/scan.ts';
 import type { Solve } from '../game/solve.ts';
+import { loadSettings, saveSettings } from '../game/storage.ts';
 import { extractWords } from '../game/words.ts';
 import { HowToPlay } from './HowToPlay.tsx';
 
@@ -26,6 +28,8 @@ export function RevealView({ solve }: Props) {
   // This page is where someone who has never seen Quoli arrives, so the rules
   // need to be within reach here more than anywhere else.
   const [helpOpen, setHelpOpen] = useState(false);
+  // Settings live in one place, so choosing a mode here carries into the game.
+  const [settings, setSettings] = useState<Settings>(loadSettings);
 
   const b = bounds(solve.board)!;
   const cols = b.maxC - b.minC + 1;
@@ -135,7 +139,16 @@ export function RevealView({ solve }: Props) {
         )}
       </div>
 
-      {helpOpen && <HowToPlay onClose={() => setHelpOpen(false)} />}
+      {helpOpen && (
+        <HowToPlay
+          onClose={() => setHelpOpen(false)}
+          settings={settings}
+          onSettings={(next) => {
+            setSettings(next);
+            saveSettings(next);
+          }}
+        />
+      )}
     </div>
   );
 }

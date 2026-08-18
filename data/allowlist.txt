@@ -1,0 +1,35 @@
+# Words ENABLE lacks. One per line, lowercase; # starts a comment.
+# Merged on top of the source list, so these survive swapping ENABLE out.
+# ENABLE was compiled in the 1990s, which is most of what shows up here.
+
+# came up in real play
+risc
+
+# computing and the internet
+blog
+blogs
+email
+emails
+emailed
+emoji
+emojis
+internet
+podcast
+podcasts
+selfie
+selfies
+smartphone
+smartphones
+texted
+texting
+website
+websites
+wifi
+
+# in common use, absent from ENABLE
+meme
+memes
+vape
+vapes
+vaped
+zen

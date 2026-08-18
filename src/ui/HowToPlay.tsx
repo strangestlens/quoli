@@ -1,5 +1,9 @@
+import type { Settings } from '../game/rules.ts';
+
 interface Props {
   onClose: () => void;
+  settings: Settings;
+  onSettings: (settings: Settings) => void;
 }
 
 /**
@@ -9,7 +13,8 @@ interface Props {
  * leaves the app's own mechanics further down. The rules section says plainly
  * which parts are enforced today, because half of them are still on trust.
  */
-export function HowToPlay({ onClose }: Props) {
+export function HowToPlay({ onClose, settings, onSettings }: Props) {
+  const strict = settings.mode === 'strict';
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div
@@ -34,10 +39,43 @@ export function HowToPlay({ onClose }: Props) {
             <li>Words read across and down, three letters or longer.</li>
             <li>No proper nouns.</li>
           </ul>
+          <div className="segmented" role="group" aria-label="Game mode">
+            <button
+              type="button"
+              className="segment"
+              data-on={!strict || undefined}
+              onClick={() => onSettings({ ...settings, mode: 'free' })}
+            >
+              Free play
+            </button>
+            <button
+              type="button"
+              className="segment"
+              data-on={strict || undefined}
+              onClick={() => onSettings({ ...settings, mode: 'strict' })}
+            >
+              Strict
+            </button>
+          </div>
+
           <p className="guide-note">
-            Today only the first two are enforced. The rest are on trust until word
-            checking arrives — you can finish a grid that spells nonsense.
+            {strict
+              ? 'Every word is checked against a dictionary, and the grid only counts as solved once they all pass.'
+              : 'Only the first two rules are enforced. Arrange the letters however you like — nonsense counts as finished.'}
           </p>
+
+          {strict && (
+            <label className="check guide-check">
+              <input
+                type="checkbox"
+                checked={settings.allowTwoLetterWords}
+                onChange={(e) =>
+                  onSettings({ ...settings, allowTwoLetterWords: e.target.checked })
+                }
+              />
+              Allow two-letter words
+            </label>
+          )}
 
           <h3>Placing dice</h3>
           <p>

@@ -31,21 +31,44 @@ export const PHASE_1_RULES: RuleSet = {
   allowProperNouns: true,
 };
 
-/** Q-Less as written on the tin. Not yet reachable — the dictionary is phase 3. */
-export const CLASSIC_RULES: RuleSet = {
-  requireAllTilesPlaced: true,
-  requireConnected: true,
-  requireWordsFormed: true,
-  minWordLength: 3,
-  requireValidWords: false,
-  allowProperNouns: false,
-};
-
 export type ViolationCode =
   | 'tiles-unplaced'
   | 'disconnected'
   | 'orphan-tile'
-  | 'short-word';
+  | 'short-word'
+  | 'invalid-word';
+
+/** Whatever can answer "is this a word". Kept minimal so the source can change. */
+export interface Dictionary {
+  has(word: string): boolean;
+}
+
+export type GameMode = 'free' | 'strict';
+
+export interface Settings {
+  readonly mode: GameMode;
+  /** Strict play only: Q-Less proper says three, but two is a common house rule. */
+  readonly allowTwoLetterWords: boolean;
+}
+
+export const DEFAULT_SETTINGS: Settings = { mode: 'free', allowTwoLetterWords: false };
+
+/** Q-Less as written on the tin. */
+export const STRICT_RULES: RuleSet = {
+  requireAllTilesPlaced: true,
+  requireConnected: true,
+  requireWordsFormed: true,
+  minWordLength: 3,
+  // Proper nouns need no separate check once words are looked up: the lexicon
+  // holds common words only, so a name simply isn't in it.
+  requireValidWords: true,
+  allowProperNouns: false,
+};
+
+export function rulesFor(settings: Settings): RuleSet {
+  if (settings.mode === 'free') return PHASE_1_RULES;
+  return { ...STRICT_RULES, minWordLength: settings.allowTwoLetterWords ? 2 : 3 };
+}
 
 export interface Violation {
   readonly code: ViolationCode;
@@ -63,6 +86,7 @@ export function analyze(
   board: Board,
   letters: readonly string[],
   rules: RuleSet,
+  dictionary?: Dictionary | null,
 ): Analysis {
   const words = extractWords(board, letters);
   const violations: Violation[] = [];
@@ -105,6 +129,22 @@ export function analyze(
         violations.push({
           code: 'short-word',
           message: `"${word.text}" is shorter than ${rules.minWordLength} letters`,
+          cells: word.cells,
+        });
+      }
+    }
+  }
+
+  // No dictionary yet — still loading, or offline — means words cannot be
+  // judged. Silence beats blocking a finished grid on a fetch that hasn't
+  // landed, so this checks nothing rather than failing everything.
+  if (rules.requireValidWords && dictionary) {
+    for (const word of words) {
+      if (word.text.length < rules.minWordLength) continue; // already reported
+      if (!dictionary.has(word.text.toLowerCase())) {
+        violations.push({
+          code: 'invalid-word',
+          message: `"${word.text}" isn't a word we know`,
           cells: word.cells,
         });
       }

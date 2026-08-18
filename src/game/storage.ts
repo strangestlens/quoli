@@ -1,7 +1,7 @@
 import { deserializeBoard, serializeBoard, type Board, type SerializedBoard } from './board.ts';
 import type { PuzzleSource } from './puzzle.ts';
 import { dayKeyToMs, MS_PER_DAY } from './roll.ts';
-import { PHASE_1_RULES, type RuleSet } from './rules.ts';
+import { DEFAULT_SETTINGS, type Settings } from './rules.ts';
 
 const NS = 'quoli:v1';
 const MAX_AGE_DAYS = 90;
@@ -98,13 +98,17 @@ export function savePlay(
   write(keyFor(source), rec);
 }
 
-export function loadRules(): RuleSet {
-  const saved = read<Partial<RuleSet>>(`${NS}:rules`);
-  return saved ? { ...PHASE_1_RULES, ...saved } : PHASE_1_RULES;
+export function loadSettings(): Settings {
+  const saved = read<Partial<Settings>>(`${NS}:settings`);
+  if (!saved) return DEFAULT_SETTINGS;
+  return {
+    mode: saved.mode === 'strict' ? 'strict' : 'free',
+    allowTwoLetterWords: saved.allowTwoLetterWords === true,
+  };
 }
 
-export function saveRules(rules: RuleSet): void {
-  write(`${NS}:rules`, rules);
+export function saveSettings(settings: Settings): void {
+  write(`${NS}:settings`, settings);
 }
 
 /**

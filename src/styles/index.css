@@ -106,7 +106,14 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Worn by a <label> (the camera, wrapping a file input) and a <button> (help).
+   Without the reset the button arrives with the UA's own border and face,
+   which read considerably brighter than the label beside it. */
 .icon-btn {
+  appearance: none;
+  border: none;
+  padding: 0;
+  font: inherit;
   display: grid;
   place-items: center;
   width: 40px;
@@ -741,4 +748,10 @@ body {
 .guide-note {
   color: var(--muted);
   font-size: 12.5px;
+}
+
+.guide-check {
+  justify-content: flex-start;
+  margin: 6px 0 2px;
+  color: var(--ink);
 }

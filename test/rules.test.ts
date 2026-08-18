@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_BOARD, place, type Board } from '../src/game/board.ts';
-import { analyze, CLASSIC_RULES, PHASE_1_RULES } from '../src/game/rules.ts';
+import {
+  analyze,
+  DEFAULT_SETTINGS,
+  PHASE_1_RULES,
+  rulesFor,
+  STRICT_RULES,
+  type Dictionary,
+} from '../src/game/rules.ts';
 import { LETTERS, SAMPLE } from './fixtures.ts';
 
 /** Twelve tiles in a row — meaningless as a crossword, but complete. */
@@ -72,33 +79,93 @@ describe('phase 1 rules', () => {
   });
 });
 
-describe('classic rules', () => {
+describe('strict rules', () => {
   it('rejects a straight line of twelve unrelated letters', () => {
     // One long "word" — connected, but not three letters at a time it isn't.
-    expect(codes(twelveInARow, twelveLetters, CLASSIC_RULES)).toEqual([]);
+    expect(codes(twelveInARow, twelveLetters, STRICT_RULES)).toEqual([]);
   });
 
   it('flags islands', () => {
     const board = place(SAMPLE, 10, { c: 20, r: 20 });
     const withEleven = place(board, 11, { c: 21, r: 20 });
-    expect(codes(withEleven, [...LETTERS, 'E', 'S'], CLASSIC_RULES)).toContain('disconnected');
+    expect(codes(withEleven, [...LETTERS, 'E', 'S'], STRICT_RULES)).toContain('disconnected');
   });
 
   it('flags a two-letter word when the minimum is three', () => {
     const board = place(SAMPLE, 10, { c: 2, r: 2 });
-    const violations = analyze(board, [...LETTERS, 'T'], CLASSIC_RULES).violations;
+    const violations = analyze(board, [...LETTERS, 'T'], STRICT_RULES).violations;
     expect(violations.map((v) => v.code)).toContain('short-word');
     expect(violations.find((v) => v.code === 'short-word')!.message).toContain('AT');
   });
 
   it('accepts the sample grid once the tray rule is met', () => {
-    const rules = { ...CLASSIC_RULES, requireAllTilesPlaced: false };
+    const rules = { ...STRICT_RULES, requireAllTilesPlaced: false };
     expect(analyze(SAMPLE, LETTERS, rules).violations).toEqual([]);
   });
 
   it('flags a stray letter that forms no word', () => {
-    const rules = { ...CLASSIC_RULES, requireAllTilesPlaced: false, requireConnected: false };
+    const rules = { ...STRICT_RULES, requireAllTilesPlaced: false, requireConnected: false };
     const board = place(SAMPLE, 10, { c: 20, r: 20 });
     expect(codes(board, [...LETTERS, 'E'], rules)).toContain('orphan-tile');
+  });
+});
+
+describe('word checking', () => {
+  const dictionary: Dictionary = { has: (w) => ['cat', 'trap', 'apply', 'nan'].includes(w) };
+
+  const across = (word: string) =>
+    word.split('').reduce<Board>((b, _, i) => place(b, i, { c: i, r: 0 }), EMPTY_BOARD);
+
+  const rules = { ...STRICT_RULES, requireAllTilesPlaced: false };
+
+  it('accepts a word the dictionary knows', () => {
+    expect(analyze(across('trap'), [...'TRAP'], rules, dictionary).violations).toEqual([]);
+  });
+
+  it('rejects one it does not, and says which', () => {
+    const result = analyze(across('trop'), [...'TROP'], rules, dictionary);
+    expect(result.violations.map((v) => v.code)).toEqual(['invalid-word']);
+    expect(result.violations[0]!.message).toBe('"TROP" isn\'t a word we know');
+  });
+
+  it('is case-insensitive against the lexicon', () => {
+    expect(analyze(across('cat'), [...'cat'], rules, dictionary).violations).toEqual([]);
+  });
+
+  it('checks nothing when no dictionary has loaded yet', () => {
+    // Better to let a finished grid stand than block it on a pending fetch.
+    expect(analyze(across('trop'), [...'TROP'], rules, null).violations).toEqual([]);
+  });
+
+  it('leaves words alone in free play', () => {
+    const free = { ...PHASE_1_RULES, requireAllTilesPlaced: false };
+    const codes = analyze(across('trop'), [...'TROP'], free, dictionary).violations.map((v) => v.code);
+    expect(codes).not.toContain('invalid-word');
+  });
+
+  it('does not double-report a run that is already too short', () => {
+    const codes = analyze(across('zz'), [...'ZZ'], rules, dictionary).violations.map((v) => v.code);
+    expect(codes).toEqual(['short-word']);
+  });
+});
+
+describe('settings', () => {
+  it('defaults to free play', () => {
+    expect(rulesFor(DEFAULT_SETTINGS)).toEqual(PHASE_1_RULES);
+  });
+
+  it('turns everything on in strict', () => {
+    const rules = rulesFor({ mode: 'strict', allowTwoLetterWords: false });
+    expect(rules.requireValidWords).toBe(true);
+    expect(rules.requireConnected).toBe(true);
+    expect(rules.minWordLength).toBe(3);
+  });
+
+  it('drops the minimum to two when the house rule is on', () => {
+    expect(rulesFor({ mode: 'strict', allowTwoLetterWords: true }).minWordLength).toBe(2);
+  });
+
+  it('ignores the house rule in free play, which checks nothing anyway', () => {
+    expect(rulesFor({ mode: 'free', allowTwoLetterWords: true })).toEqual(PHASE_1_RULES);
   });
 });

@@ -3,16 +3,17 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Quoli — the daily crossword roll",
+  "description": "Quoli \u2014 the daily crossword roll",
   "scripts": {
     "dev": "vite",
     "dev:https": "QUOLI_HTTPS=1 vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run words && tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name=quoli --branch=main --commit-dirty=true"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=quoli --branch=main --commit-dirty=true",
+    "words": "node scripts/build-words.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

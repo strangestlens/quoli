@@ -88,7 +88,7 @@ export function HowToPlay({ onClose, settings, onSettings }: Props) {
             Some rolls genuinely can't be solved. Re-roll for a fresh twelve, and use the
             counter in the corner to step back to an earlier set. Everyone gets the same dice
             each day, and the same re-rolls in the same order — so a roll you found brutal was
-            brutal for everyone.
+            brutal for everyone. A new puzzle arrives at midnight Eastern.
           </p>
 
           <h3>Scanning real dice</h3>

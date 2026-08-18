@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DICE, DIE_COUNT, FACE_COUNT, VOWELS } from '../src/game/dice.ts';
 import {
+  dayKeyForPuzzle,
   dayKeyFromMs,
   nextRolloverMs,
   puzzleNumber,
@@ -81,11 +82,26 @@ describe('rollFor', () => {
 });
 
 describe('day keys', () => {
-  it('uses UTC, not local time', () => {
-    // 23:30 UTC on the 16th is still the 16th everywhere, including for a
-    // player whose local clock already says the 17th.
-    expect(todayKey(Date.UTC(2026, 7, 16, 23, 30))).toBe('2026-08-16');
-    expect(todayKey(Date.UTC(2026, 7, 17, 0, 1))).toBe('2026-08-17');
+  const at = (y: number, m: number, d: number, h: number, min = 0) =>
+    Date.UTC(y, m - 1, d, h, min);
+
+  it('turns over at midnight Eastern, not UTC', () => {
+    // Summer is UTC-4, so the puzzle flips at 04:00Z. Before that it is still
+    // yesterday's, even though UTC has already moved on.
+    expect(todayKey(at(2026, 8, 18, 3, 59))).toBe('2026-08-17');
+    expect(todayKey(at(2026, 8, 18, 4, 0))).toBe('2026-08-18');
+  });
+
+  it('follows daylight saving rather than a fixed offset', () => {
+    // Winter is UTC-5, so the same boundary lands an hour later.
+    expect(todayKey(at(2026, 1, 15, 4, 59))).toBe('2026-01-14');
+    expect(todayKey(at(2026, 1, 15, 5, 0))).toBe('2026-01-15');
+  });
+
+  it('holds one puzzle across a whole Eastern day', () => {
+    const morning = todayKey(at(2026, 8, 18, 13, 0)); // 9am Eastern
+    const evening = todayKey(at(2026, 8, 19, 3, 0)); // 11pm Eastern, same day
+    expect(evening).toBe(morning);
   });
 
   it('numbers puzzles from the epoch', () => {
@@ -93,8 +109,28 @@ describe('day keys', () => {
     expect(puzzleNumber('2026-08-16')).toBe(228);
   });
 
-  it('rolls over at the next UTC midnight', () => {
-    const now = Date.UTC(2026, 7, 16, 23, 59);
-    expect(dayKeyFromMs(nextRolloverMs(now))).toBe('2026-08-17');
+  it('maps a puzzle number back to its day, unchanged by the rollover shift', () => {
+    // The index is deliberately not timezone-aware: moving it would renumber
+    // every puzzle ever shared.
+    expect(dayKeyForPuzzle(1)).toBe('2026-01-01');
+    expect(dayKeyForPuzzle(228)).toBe('2026-08-16');
+    expect(dayKeyForPuzzle(230)).toBe('2026-08-18');
+  });
+
+  it('round-trips numbers and days for years', () => {
+    for (let n = 1; n <= 4000; n++) {
+      expect(puzzleNumber(dayKeyForPuzzle(n))).toBe(n);
+    }
+  });
+
+  it('reports the next rollover to the minute', () => {
+    const next = nextRolloverMs(at(2026, 8, 18, 12, 0));
+    expect(new Date(next).toISOString()).toBe('2026-08-19T04:00:00.000Z');
+    expect(todayKey(next)).toBe('2026-08-19');
+  });
+
+  it('reports the winter rollover an hour later', () => {
+    const next = nextRolloverMs(at(2026, 1, 15, 12, 0));
+    expect(new Date(next).toISOString()).toBe('2026-01-16T05:00:00.000Z');
   });
 });

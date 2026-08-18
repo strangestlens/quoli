@@ -26,6 +26,29 @@ export interface Roll {
   readonly faces: readonly number[];
 }
 
+/**
+ * The timezone that decides when the puzzle turns over.
+ *
+ * A fixed zone, deliberately not the player's own: everyone getting the same
+ * dice on the same day is the whole point, and a local rollover would hand
+ * neighbours in different zones different puzzles. Eastern is the convention
+ * daily puzzles follow.
+ */
+export const PUZZLE_ZONE = 'America/New_York';
+
+const zonedDate = new Intl.DateTimeFormat('en-US', {
+  timeZone: PUZZLE_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/**
+ * Index helper, not a clock: maps a day key to a number so puzzle arithmetic
+ * works, and back again. Deliberately UTC and deliberately *not* zone-aware —
+ * it pairs with dayKeyToMs, and making it local would move every puzzle
+ * number by a day. Which day it is *now* is todayKey's job.
+ */
 export function dayKeyFromMs(ms: number): DayKey {
   const d = new Date(ms);
   const y = d.getUTCFullYear();
@@ -34,8 +57,11 @@ export function dayKeyFromMs(ms: number): DayKey {
   return `${y}-${m}-${day}`;
 }
 
+/** Which puzzle is today's, by the clock in PUZZLE_ZONE. */
 export function todayKey(now: number = Date.now()): DayKey {
-  return dayKeyFromMs(now);
+  const parts = zonedDate.formatToParts(new Date(now));
+  const part = (type: string) => parts.find((p) => p.type === type)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 export function dayKeyToMs(dayKey: DayKey): number {
@@ -59,9 +85,22 @@ export function dayKeyForPuzzle(puzzleNumber: number): DayKey {
   return dayKeyFromMs(dayKeyToMs(PUZZLE_EPOCH) + (puzzleNumber - 1) * MS_PER_DAY);
 }
 
-/** Epoch ms of the next UTC midnight — when the puzzle turns over. */
+/**
+ * When the puzzle next turns over, to the minute.
+ *
+ * Walked rather than calculated: the offset from UTC changes twice a year, so
+ * adding a fixed twenty-four hours would be an hour out either side of a
+ * daylight-saving switch.
+ */
 export function nextRolloverMs(now: number = Date.now()): number {
-  return dayKeyToMs(dayKeyFromMs(now)) + MS_PER_DAY;
+  const today = todayKey(now);
+
+  let ms = now;
+  while (todayKey(ms) === today) ms += 3_600_000;
+  ms -= 3_600_000;
+  while (todayKey(ms) === today) ms += 60_000;
+
+  return ms;
 }
 
 /**

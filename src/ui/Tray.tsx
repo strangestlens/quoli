@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 import { trayTiles, type Board } from '../game/board.ts';
 import { Tile } from './Tile.tsx';
 import type { DragPlacement } from './useDragPlacement.ts';
@@ -50,8 +50,12 @@ export function Tray({ board, letters, drag, onReturnSelected, introKey }: Props
   // A flat row of letters above a "Re-roll" button read as a start screen to
   // more than one person. Cascading the dice in says they were just thrown.
   // The flag clears afterwards so putting a tile back later doesn't replay it.
+  //
+  // Layout effect, not a plain one: on a roll that arrives after the flag has
+  // cleared this adds `data-intro` before paint, so the tiles never flash at
+  // full opacity for a frame before the cascade takes hold.
   const [intro, setIntro] = useState(true);
-  useEffect(() => {
+  useLayoutEffect(() => {
     setIntro(true);
     const id = window.setTimeout(() => setIntro(false), INTRO_MS);
     return () => window.clearTimeout(id);
@@ -60,6 +64,11 @@ export function Tray({ board, letters, drag, onReturnSelected, introKey }: Props
 
   return (
     <div
+      // Re-keyed per roll so the dice are genuinely new elements. Re-rolling
+      // inside the cascade window leaves `data-intro` already set, and an
+      // animation the browser has not seen change does not restart — which
+      // silently swallowed the effect on a quick second roll.
+      key={introKey}
       className="tray"
       data-drop={selectedIsPlaced || undefined}
       data-intro={intro || undefined}

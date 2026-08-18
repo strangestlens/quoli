@@ -693,3 +693,52 @@ body {
 .reveal-grid[data-revealed] .reveal-letter {
   animation: tray-drop 675ms cubic-bezier(0.2, 0.75, 0.3, 1) backwards;
 }
+
+/* ---------- how to play ---------- */
+
+.sheet-tall {
+  max-height: 82dvh;
+}
+
+.guide {
+  overflow-y: auto;
+  /* Momentum scrolling inside the sheet without dragging the page behind it. */
+  overscroll-behavior: contain;
+  margin: 2px -2px 6px;
+  padding: 0 2px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.guide-lede {
+  margin: 0 0 4px;
+  font-size: 14.5px;
+}
+
+.guide h3 {
+  margin: 16px 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.guide p {
+  margin: 0 0 8px;
+}
+
+.guide ul {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.guide li {
+  margin-bottom: 3px;
+}
+
+.guide-note {
+  color: var(--muted);
+  font-size: 12.5px;
+}

@@ -26,6 +26,7 @@ import { loadPlay, loadRules, pruneOldPlays, savePlay } from '../game/storage.ts
 import { Board } from './Board.tsx';
 import { computeGeometry, growWindow, type Window } from './geometry.ts';
 import { Header } from './Header.tsx';
+import { HowToPlay } from './HowToPlay.tsx';
 import { RevealView } from './RevealView.tsx';
 import { ScanSheet } from './ScanSheet.tsx';
 import { ShareSheet } from './ShareSheet.tsx';
@@ -95,6 +96,7 @@ function GameView() {
   const [dayIsStale, setDayIsStale] = useState(false);
   const [setCodeWarning, setSetCodeWarning] = useState(badSetCode);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const rules = useMemo(loadRules, []);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -299,7 +301,12 @@ function GameView() {
 
   return (
     <div className="app">
-      <Header source={state.source} onPhoto={setPhoto} onPreviousRoll={previousRoll} />
+      <Header
+        source={state.source}
+        onPhoto={setPhoto}
+        onPreviousRoll={previousRoll}
+        onHelp={() => setHelpOpen(true)}
+      />
 
       {setCodeWarning && (
         <button type="button" className="banner" onClick={() => setSetCodeWarning(false)}>
@@ -390,6 +397,8 @@ function GameView() {
       >
         {ghostLetter}
       </div>
+
+      {helpOpen && <HowToPlay onClose={() => setHelpOpen(false)} />}
 
       {photo && (
         <ScanSheet photo={photo} onClose={() => setPhoto(null)} onAccept={acceptScan} />

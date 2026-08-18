@@ -4,6 +4,7 @@ import { puzzlePath } from '../game/puzzle.ts';
 import { setCode } from '../game/scan.ts';
 import type { Solve } from '../game/solve.ts';
 import { extractWords } from '../game/words.ts';
+import { HowToPlay } from './HowToPlay.tsx';
 
 /** Matches the tray cascade, so the letters arrive the same way the dice did. */
 const STAGGER_MS = 46;
@@ -22,6 +23,9 @@ interface Props {
  */
 export function RevealView({ solve }: Props) {
   const [revealed, setRevealed] = useState(false);
+  // This page is where someone who has never seen Quoli arrives, so the rules
+  // need to be within reach here more than anywhere else.
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const b = bounds(solve.board)!;
   const cols = b.maxC - b.minC + 1;
@@ -69,6 +73,25 @@ export function RevealView({ solve }: Props) {
           <p className="tagline">someone sent you their grid</p>
         </div>
 
+        <div className="header-right">
+        <button type="button" className="icon-btn" onClick={() => setHelpOpen(true)} title="How to play">
+          <span className="sr-only">How to play</span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9.3a2.6 2.6 0 0 1 5.1.8c0 1.7-2.5 2.3-2.5 3.9" />
+            <circle cx="12" cy="17.3" r="0.7" fill="currentColor" stroke="none" />
+          </svg>
+        </button>
+
         <div className="counters">
           {solve.origin ? (
             <>
@@ -81,6 +104,7 @@ export function RevealView({ solve }: Props) {
               <span className="set-code">{setCode(solve.letters)}</span>
             </>
           )}
+        </div>
         </div>
       </header>
 
@@ -110,6 +134,8 @@ export function RevealView({ solve }: Props) {
           </button>
         )}
       </div>
+
+      {helpOpen && <HowToPlay onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }

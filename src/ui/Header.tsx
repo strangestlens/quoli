@@ -5,9 +5,10 @@ interface Props {
   source: PuzzleSource;
   onPhoto: (photo: File) => void;
   onPreviousRoll: () => void;
+  onHelp: () => void;
 }
 
-export function Header({ source, onPhoto, onPreviousRoll }: Props) {
+export function Header({ source, onPhoto, onPreviousRoll, onHelp }: Props) {
   return (
     <header className="header">
       <div className="brand">
@@ -18,6 +19,11 @@ export function Header({ source, onPhoto, onPreviousRoll }: Props) {
       </div>
 
       <div className="header-right">
+        <button type="button" className="icon-btn" onClick={onHelp} title="How to play">
+          <span className="sr-only">How to play</span>
+          <HelpIcon />
+        </button>
+
         {/* A label wrapping the input keeps the camera on the user's own tap —
             programmatically clicking a file input is blocked on iOS. */}
         <label className="icon-btn" title="Scan physical dice">
@@ -66,6 +72,25 @@ export function Header({ source, onPhoto, onPreviousRoll }: Props) {
         </div>
       </div>
     </header>
+  );
+}
+
+function HelpIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.3a2.6 2.6 0 0 1 5.1.8c0 1.7-2.5 2.3-2.5 3.9" />
+      <circle cx="12" cy="17.3" r="0.7" fill="currentColor" stroke="none" />
+    </svg>
   );
 }
 

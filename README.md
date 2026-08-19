@@ -17,7 +17,7 @@ The full Q-Less rules are on by default: all twelve dice down, everything interl
 
 **Free play** is the opt-out. It enforces only the two rules a machine can check without a lexicon — all twelve placed, one connected shape — so nonsense counts as finished.
 
-Both are the same `RuleSet` with different flags (`STRICT_RULES` and `PHASE_1_RULES` in `src/game/rules.ts`), so another mode is a config change rather than a rewrite. The dictionary is fetched per set from `functions/api/words.ts` rather than bundled: the full lexicon is 376 KB gzipped, but the slice a given twelve letters can reach is about a kilobyte.
+Both are the same `RuleSet` with different flags (`STRICT_RULES` and `FREE_RULES` in `src/game/rules.ts`), so another mode is a config change rather than a rewrite. The dictionary is fetched per set from `functions/api/words.ts` rather than bundled: the full lexicon is 376 KB gzipped, but the slice a given twelve letters can reach is about a kilobyte.
 
 ## Development
 

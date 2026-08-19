@@ -13,9 +13,9 @@ export interface Word {
 /**
  * Every contiguous run of two or more tiles, across and down.
  *
- * Nothing validates these yet — phase 1 doesn't check a dictionary — but the
- * share text reports a word count, and the rule checks that turn on later all
- * work off these runs.
+ * Runs, not verdicts: two or more so a bare pair is visible to the checker
+ * even when the minimum is three. Every rule check works off these, and the
+ * share text counts them.
  */
 export function extractWords(board: Board, letters: readonly string[]): Word[] {
   const out: Word[] = [];

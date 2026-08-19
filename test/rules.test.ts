@@ -3,7 +3,7 @@ import { EMPTY_BOARD, place, type Board } from '../src/game/board.ts';
 import {
   analyze,
   DEFAULT_SETTINGS,
-  PHASE_1_RULES,
+  FREE_RULES,
   rulesFor,
   STRICT_RULES,
   type Dictionary,
@@ -18,12 +18,12 @@ const twelveInARow: Board = Array.from({ length: 12 }).reduce<Board>(
 
 const twelveLetters = 'ABCDEFGHIJKL'.split('');
 
-const codes = (board: Board, letters: readonly string[], rules = PHASE_1_RULES) =>
+const codes = (board: Board, letters: readonly string[], rules = FREE_RULES) =>
   analyze(board, letters, rules).violations.map((v) => v.code);
 
-describe('phase 1 rules', () => {
+describe('free play rules', () => {
   it('completes on twelve interlocked dice, whatever they spell', () => {
-    const result = analyze(twelveInARow, twelveLetters, PHASE_1_RULES);
+    const result = analyze(twelveInARow, twelveLetters, FREE_RULES);
     expect(result.violations).toEqual([]);
     expect(result.complete).toBe(true);
   });
@@ -41,7 +41,7 @@ describe('phase 1 rules', () => {
       EMPTY_BOARD,
     );
     expect(codes(scattered, twelveLetters)).toEqual(['disconnected']);
-    expect(analyze(scattered, twelveLetters, PHASE_1_RULES).complete).toBe(false);
+    expect(analyze(scattered, twelveLetters, FREE_RULES).complete).toBe(false);
   });
 
   it('refuses a board that is one tile short of joined up', () => {
@@ -49,7 +49,7 @@ describe('phase 1 rules', () => {
       (b, _, i) => place(b, i, i === 11 ? { c: 5, r: 5 } : { c: i, r: 0 }),
       EMPTY_BOARD,
     );
-    expect(analyze(almost, twelveLetters, PHASE_1_RULES).complete).toBe(false);
+    expect(analyze(almost, twelveLetters, FREE_RULES).complete).toBe(false);
   });
 
   it('accepts an L-shaped board — connection is not a straight line', () => {
@@ -57,11 +57,11 @@ describe('phase 1 rules', () => {
       (b, _, i) => place(b, i, i < 6 ? { c: i, r: 0 } : { c: 0, r: i - 5 }),
       EMPTY_BOARD,
     );
-    expect(analyze(bent, twelveLetters, PHASE_1_RULES).complete).toBe(true);
+    expect(analyze(bent, twelveLetters, FREE_RULES).complete).toBe(true);
   });
 
   it('is incomplete while dice remain in the tray', () => {
-    const result = analyze(SAMPLE, LETTERS, PHASE_1_RULES);
+    const result = analyze(SAMPLE, LETTERS, FREE_RULES);
     expect(result.violations.map((v) => v.code)).toEqual(['tiles-unplaced']);
     expect(result.violations[0]!.message).toBe('2 dice still in the tray');
     expect(result.complete).toBe(false);
@@ -69,13 +69,13 @@ describe('phase 1 rules', () => {
 
   it('says "die" for a single remaining tile', () => {
     const board = place(SAMPLE, 10, { c: 5, r: 1 });
-    expect(analyze(board, LETTERS, PHASE_1_RULES).violations[0]!.message).toBe(
+    expect(analyze(board, LETTERS, FREE_RULES).violations[0]!.message).toBe(
       '1 die still in the tray',
     );
   });
 
   it('never completes an empty board', () => {
-    expect(analyze(EMPTY_BOARD, twelveLetters, PHASE_1_RULES).complete).toBe(false);
+    expect(analyze(EMPTY_BOARD, twelveLetters, FREE_RULES).complete).toBe(false);
   });
 });
 
@@ -138,7 +138,7 @@ describe('word checking', () => {
   });
 
   it('leaves words alone in free play', () => {
-    const free = { ...PHASE_1_RULES, requireAllTilesPlaced: false };
+    const free = { ...FREE_RULES, requireAllTilesPlaced: false };
     const codes = analyze(across('trop'), [...'TROP'], free, dictionary).violations.map((v) => v.code);
     expect(codes).not.toContain('invalid-word');
   });
@@ -166,6 +166,6 @@ describe('settings', () => {
   });
 
   it('ignores the house rule in free play, which checks nothing anyway', () => {
-    expect(rulesFor({ mode: 'free', allowTwoLetterWords: true })).toEqual(PHASE_1_RULES);
+    expect(rulesFor({ mode: 'free', allowTwoLetterWords: true })).toEqual(FREE_RULES);
   });
 });

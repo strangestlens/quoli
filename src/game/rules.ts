@@ -3,11 +3,11 @@ import { components, type Board, type Coord } from './board.ts';
 import { extractWords, orphanTiles, type Word } from './words.ts';
 
 /**
- * Which parts of Q-Less we actually enforce.
+ * Which parts of Q-Less a given mode actually enforces.
  *
- * Phase 1 enforces only "all twelve tiles are down" — the board can be
- * anything the player likes. The rest of the flags exist now so that turning
- * real rules on later is a config change rather than a rewrite.
+ * Every flag is independent, so a mode is a set of them rather than a branch
+ * in the checker — which is what keeps another mode a config change rather
+ * than a rewrite.
  */
 export interface RuleSet {
   /** All twelve dice must be on the board. */
@@ -17,12 +17,19 @@ export interface RuleSet {
   /** Every tile must sit in a run, and every run must clear minWordLength. */
   requireWordsFormed: boolean;
   minWordLength: 2 | 3;
-  /** Needs a dictionary — phase 3. */
+  /** Needs a dictionary passed to `analyze`; without one, nothing is checked. */
   requireValidWords: boolean;
   allowProperNouns: boolean;
 }
 
-export const PHASE_1_RULES: RuleSet = {
+/**
+ * Free play: the two rules that need no lexicon.
+ *
+ * All twelve down and one connected shape, which between them are everything
+ * a machine can judge without knowing what a word is. Anything past that is
+ * left to the player.
+ */
+export const FREE_RULES: RuleSet = {
   requireAllTilesPlaced: true,
   requireConnected: true,
   requireWordsFormed: false,
@@ -66,7 +73,7 @@ export const STRICT_RULES: RuleSet = {
 };
 
 export function rulesFor(settings: Settings): RuleSet {
-  if (settings.mode === 'free') return PHASE_1_RULES;
+  if (settings.mode === 'free') return FREE_RULES;
   return { ...STRICT_RULES, minWordLength: settings.allowTwoLetterWords ? 2 : 3 };
 }
 

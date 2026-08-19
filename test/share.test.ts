@@ -32,7 +32,7 @@ describe('shapeShare', () => {
   it('gives away the shape and nothing else', () => {
     expect(shapeShare(SAMPLE, META)).toBe(
       [
-        'Quoli #228 · roll 2',
+        'Quoli #228 · set 2',
         '10 letters · 3 words',
         '',
         '⬜🟩⬜⬜⬜',
@@ -49,8 +49,8 @@ describe('shapeShare', () => {
     expect(shapeShare(SAMPLE, META)).not.toMatch(/[A-Z]RAIN/);
   });
 
-  it('displays the roll one-based', () => {
-    expect(shapeShare(SAMPLE, FIRST_ROLL)).toContain('roll 1');
+  it('displays the set one-based', () => {
+    expect(shapeShare(SAMPLE, FIRST_ROLL)).toContain('set 1');
   });
 
   it('says "word" for a single word', () => {
@@ -130,7 +130,7 @@ describe('letterShare', () => {
   it('renders fullwidth letters over ideographic blanks so columns align', () => {
     expect(letterShare(SAMPLE, LETTERS, META)).toBe(
       [
-        'Quoli #228 · roll 2',
+        'Quoli #228 · set 2',
         '',
         '　Ｃ　　　',
         'ＴＲＡＩＮ',

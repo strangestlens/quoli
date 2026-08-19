@@ -6,14 +6,18 @@ Quoli is a web take on [Q-Less](https://qlessgame.com/), Tom Sturdevant's pocket
 
 ## How it works
 
-- **One puzzle a day.** The roll is derived from the UTC date, so everyone sees the same dice.
-- **Re-rolls are deterministic too.** If today's first roll is unsolvable, roll again — and roll 2 will be the same twelve letters for everyone, and still the same after a reload. Nothing about the day's sequence is random at runtime.
+- **One puzzle a day.** The roll is derived from the date in US Eastern time, so everyone sees the same dice and the puzzle turns over at midnight Eastern rather than at a different moment in every timezone.
+- **Re-rolls are deterministic too.** If today's first set is unsolvable, roll again — and set 2 will be the same twelve letters for everyone, and still the same after a reload. Nothing about the day's sequence is random at runtime.
 - **Drag or tap.** Drag a die onto the grid, or tap it and tap a destination. The board auto-fits as it grows.
 - **Share without spoiling.** The default share is a silhouette of your grid. There's an opt-in "copy with letters" for chats where everyone has already played.
 
-## Phase 1 scope
+## Game modes
 
-Words are **not** validated yet. A board is complete when all twelve dice are down, arranged however you like — honour system. The rule checks (minimum word length, connectivity, dictionary) are all written and tested; they're just switched off in `PHASE_1_RULES`. Turning them on is a config change, not a rewrite.
+The full Q-Less rules are on by default: all twelve dice down, everything interlocking as one shape, every run three letters or longer, and every word checked against a dictionary. Allowing two-letter words is a house rule you can switch on.
+
+**Free play** is the opt-out. It enforces only the two rules a machine can check without a lexicon — all twelve placed, one connected shape — so nonsense counts as finished.
+
+Both are the same `RuleSet` with different flags (`STRICT_RULES` and `PHASE_1_RULES` in `src/game/rules.ts`), so another mode is a config change rather than a rewrite. The dictionary is fetched per set from `functions/api/words.ts` rather than bundled: the full lexicon is 376 KB gzipped, but the slice a given twelve letters can reach is about a kilobyte.
 
 ## Development
 

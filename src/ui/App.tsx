@@ -257,7 +257,7 @@ function GameView() {
     goToRoll(state.source.rollIndex + 1);
   };
 
-  const previousRoll = () => {
+  const previousSet = () => {
     if (state.source.kind === 'daily') goToRoll(state.source.rollIndex - 1);
   };
 
@@ -335,7 +335,7 @@ function GameView() {
       <Header
         source={state.source}
         onPhoto={setPhoto}
-        onPreviousRoll={previousRoll}
+        onPreviousSet={previousSet}
         onHelp={() => setHelpOpen(true)}
       />
 
@@ -404,9 +404,11 @@ function GameView() {
 
         {canReroll(state.source) ? (
           <button type="button" className="btn btn-quiet btn-wide" onClick={reroll}>
-            {/* "Stuck?" is the part carrying the meaning: the trouble was never
-                that people didn't know what a roll is, it's that this looked
-                like the next step rather than an escape hatch. */}
+            {/* Rolling is the action, a set is what you get: this button is
+                the one place that names the action, because "dice" is the
+                thing being thrown. "Stuck?" carries the rest of the meaning —
+                the trouble was that this looked like the next step rather
+                than an escape hatch. */}
             {confirmingReroll ? 'Start over?' : 'Stuck? New dice'}
           </button>
         ) : (

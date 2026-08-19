@@ -51,7 +51,7 @@ export function ShareSheet({ board, letters, meta, onClose }: Props) {
       >
         <h2 className="sheet-title">
           {meta.subject.kind === 'daily'
-            ? `Solved on roll ${meta.subject.rollIndex + 1}`
+            ? `Solved on set ${meta.subject.rollIndex + 1}`
             : 'Solved a custom set'}
         </h2>
         <p className="sheet-sub">

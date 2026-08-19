@@ -28,14 +28,14 @@ export interface ShareMeta {
 function header(meta: ShareMeta): string {
   const { subject } = meta;
   return subject.kind === 'daily'
-    ? `Quoli #${subject.puzzleNumber} · roll ${subject.rollIndex + 1}`
+    ? `Quoli #${subject.puzzleNumber} · set ${subject.rollIndex + 1}`
     : 'Quoli · custom set';
 }
 
 /**
  * A custom set's link carries the dice in it, so whoever opens it gets the
- * same twelve letters and an empty board. A daily link carries the roll, so
- * a friend lands on the one that was actually solved rather than roll 1.
+ * same twelve letters and an empty board. A daily link carries the set, so
+ * a friend lands on the one that was actually solved rather than the first.
  */
 function link(meta: ShareMeta): string {
   if (!SHARE_URL) return '';

@@ -4,11 +4,11 @@ import { puzzleNumber } from '../game/roll.ts';
 interface Props {
   source: PuzzleSource;
   onPhoto: (photo: File) => void;
-  onPreviousRoll: () => void;
+  onPreviousSet: () => void;
   onHelp: () => void;
 }
 
-export function Header({ source, onPhoto, onPreviousRoll, onHelp }: Props) {
+export function Header({ source, onPhoto, onPreviousSet, onHelp }: Props) {
   return (
     <header className="header">
       <div className="brand">
@@ -47,7 +47,7 @@ export function Header({ source, onPhoto, onPreviousRoll, onHelp }: Props) {
           {source.kind === 'daily' ? (
             <>
               <span className="puzzle-no">#{puzzleNumber(source.dayKey)}</span>
-              {/* Nothing here on the first set of dice. A bare "roll 1" in the
+              {/* Nothing here on the first set of dice. A bare "set 1" in the
                   corner reads like "level 1" — it announces a sequence before
                   one exists, which is most of why re-rolling looked like step
                   two of a game rather than a fresh start. Once there really is
@@ -55,11 +55,11 @@ export function Header({ source, onPhoto, onPreviousRoll, onHelp }: Props) {
               {source.rollIndex > 0 && (
                 <button
                   type="button"
-                  className="roll-back"
-                  onClick={onPreviousRoll}
-                  aria-label={`Back to roll ${source.rollIndex}`}
+                  className="set-back"
+                  onClick={onPreviousSet}
+                  aria-label={`Back to set ${source.rollIndex}`}
                 >
-                  <span aria-hidden="true">‹</span> roll {source.rollIndex + 1}
+                  <span aria-hidden="true">‹</span> set {source.rollIndex + 1}
                 </button>
               )}
             </>

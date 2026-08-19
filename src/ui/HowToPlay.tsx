@@ -28,8 +28,8 @@ export function HowToPlay({ onClose, settings, onSettings }: Props) {
 
         <div className="guide">
           <p className="guide-lede">
-            Twelve dice, one grid. Roll them, then use every letter to build a single
-            interlocking crossword — a Scrabble board with no board.
+            Twelve dice, already rolled. Use every letter to build a single interlocking
+            crossword — a Scrabble board with no board.
           </p>
 
           <h3>The rules</h3>
@@ -43,18 +43,18 @@ export function HowToPlay({ onClose, settings, onSettings }: Props) {
             <button
               type="button"
               className="segment"
-              data-on={!strict || undefined}
-              onClick={() => onSettings({ ...settings, mode: 'free' })}
+              data-on={strict || undefined}
+              onClick={() => onSettings({ ...settings, mode: 'strict' })}
             >
-              Free play
+              Rules on
             </button>
             <button
               type="button"
               className="segment"
-              data-on={strict || undefined}
-              onClick={() => onSettings({ ...settings, mode: 'strict' })}
+              data-on={!strict || undefined}
+              onClick={() => onSettings({ ...settings, mode: 'free' })}
             >
-              Strict
+              Free play
             </button>
           </div>
 
@@ -85,11 +85,17 @@ export function HowToPlay({ onClose, settings, onSettings }: Props) {
 
           <h3>Getting stuck</h3>
           <p>
-            Some sets of twelve genuinely can't be solved. <em>Stuck? New dice</em> throws a
-            completely fresh twelve — it's a fresh start, not the next stage, and nothing
-            carries over. The counter that appears in the corner steps you back to a previous
-            set. Everyone gets the same dice each day, in the same order, so a set you found
-            brutal was brutal for everyone. A new puzzle arrives at midnight Eastern.
+            Can't get started? The shuffle button in the tray deals the same twelve out in a
+            new order. It doesn't change your letters or disturb the board — it just gives you
+            a fresh look at them, and half of getting unstuck is seeing the set differently.
+          </p>
+          <p>
+            Some sets of twelve genuinely can't be solved. Use the{' '}
+            <em>Stuck? New dice</em> button to throw a completely fresh twelve — it's a fresh
+            start, not the next stage, and nothing carries over. The set counter in the corner
+            appears the moment you're past the first set, and tapping it steps you back through
+            the earlier ones. Everyone gets the same dice each day, in the same order, so a set
+            you found brutal was brutal for everyone. A new puzzle arrives at midnight Eastern.
           </p>
 
           <h3>Scanning real dice</h3>

@@ -47,11 +47,11 @@ export type GameMode = 'free' | 'strict';
 
 export interface Settings {
   readonly mode: GameMode;
-  /** Strict play only: Q-Less proper says three, but two is a common house rule. */
+  /** Rules-on play only: Q-Less proper says three, but two is a common house rule. */
   readonly allowTwoLetterWords: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { mode: 'free', allowTwoLetterWords: false };
+export const DEFAULT_SETTINGS: Settings = { mode: 'strict', allowTwoLetterWords: false };
 
 /** Q-Less as written on the tin. */
 export const STRICT_RULES: RuleSet = {

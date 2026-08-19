@@ -23,7 +23,7 @@ export interface DictionaryState {
  * response is immutable, so the daily is served from the edge after the first
  * player of the day.
  *
- * Only fetched in strict play — free play never asks a question it doesn't use.
+ * Only fetched with the rules on — free play never asks a question it doesn't use.
  */
 export function useDictionary(letters: readonly string[], enabled: boolean): DictionaryState {
   const code = useMemo(() => setCode(letters), [letters]);

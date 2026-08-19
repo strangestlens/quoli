@@ -150,8 +150,8 @@ describe('word checking', () => {
 });
 
 describe('settings', () => {
-  it('defaults to free play', () => {
-    expect(rulesFor(DEFAULT_SETTINGS)).toEqual(PHASE_1_RULES);
+  it('defaults to the full rules', () => {
+    expect(rulesFor(DEFAULT_SETTINGS)).toEqual(STRICT_RULES);
   });
 
   it('turns everything on in strict', () => {

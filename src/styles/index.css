@@ -152,10 +152,10 @@ body {
 }
 
 /* The plain label and the back button have to occupy an identical box, or
-   the header jumps a pixel or two the moment a roll becomes steppable. Only
+   the header jumps a pixel or two the moment a set becomes steppable. Only
    colour and background differ between them. */
-.roll-no,
-.roll-back {
+.set-no,
+.set-back {
   display: inline-flex;
   align-items: center;
   height: 17px;
@@ -645,14 +645,14 @@ body {
   background: var(--accent);
 }
 
-.roll-back {
+.set-back {
   appearance: none;
   color: var(--accent);
   background: var(--accent-soft);
   cursor: pointer;
 }
 
-.roll-back:active {
+.set-back:active {
   transform: scale(0.95);
 }
 

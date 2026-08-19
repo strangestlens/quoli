@@ -102,7 +102,9 @@ export function loadSettings(): Settings {
   const saved = read<Partial<Settings>>(`${NS}:settings`);
   if (!saved) return DEFAULT_SETTINGS;
   return {
-    mode: saved.mode === 'strict' ? 'strict' : 'free',
+    // Anything that isn't an explicit opt-out lands on the default, so a
+    // record written before this setting existed reads as rules-on.
+    mode: saved.mode === 'free' ? 'free' : 'strict',
     allowTwoLetterWords: saved.allowTwoLetterWords === true,
   };
 }

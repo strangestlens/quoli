@@ -100,7 +100,7 @@ export function RevealView({ solve }: Props) {
           {solve.origin ? (
             <>
               <span className="puzzle-no">#{solve.origin.puzzleNumber}</span>
-              <span className="roll-no">roll {solve.origin.rollIndex + 1}</span>
+              <span className="set-no">set {solve.origin.rollIndex + 1}</span>
             </>
           ) : (
             <>

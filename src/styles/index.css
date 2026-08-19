@@ -755,3 +755,9 @@ body {
   margin: 6px 0 2px;
   color: var(--ink);
 }
+
+/* "Stuck? New dice" needs a little more than a third of the row to stay on
+   one line; the other two have short labels and can give it up. */
+.btn-wide {
+  flex: 1.35;
+}

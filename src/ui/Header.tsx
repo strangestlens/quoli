@@ -47,10 +47,12 @@ export function Header({ source, onPhoto, onPreviousRoll, onHelp }: Props) {
           {source.kind === 'daily' ? (
             <>
               <span className="puzzle-no">#{puzzleNumber(source.dayKey)}</span>
-              {/* Re-rolling used to be a one-way door. Tapping the counter walks
-                  back a roll at a time, so nobody is stranded on a set they
-                  can't solve — and roll 1 is always a few taps away. */}
-              {source.rollIndex > 0 ? (
+              {/* Nothing here on the first set of dice. A bare "roll 1" in the
+                  corner reads like "level 1" — it announces a sequence before
+                  one exists, which is most of why re-rolling looked like step
+                  two of a game rather than a fresh start. Once there really is
+                  a second, this is both the tally and the way back. */}
+              {source.rollIndex > 0 && (
                 <button
                   type="button"
                   className="roll-back"
@@ -59,8 +61,6 @@ export function Header({ source, onPhoto, onPreviousRoll, onHelp }: Props) {
                 >
                   <span aria-hidden="true">‹</span> roll {source.rollIndex + 1}
                 </button>
-              ) : (
-                <span className="roll-no">roll 1</span>
               )}
             </>
           ) : (

@@ -387,8 +387,11 @@ function GameView() {
         </button>
 
         {canReroll(state.source) ? (
-          <button type="button" className="btn btn-quiet" onClick={reroll}>
-            {confirmingReroll ? 'Clear board and re-roll?' : 'Re-roll'}
+          <button type="button" className="btn btn-quiet btn-wide" onClick={reroll}>
+            {/* "Stuck?" is the part carrying the meaning: the trouble was never
+                that people didn't know what a roll is, it's that this looked
+                like the next step rather than an escape hatch. */}
+            {confirmingReroll ? 'Start over?' : 'Stuck? New dice'}
           </button>
         ) : (
           <button type="button" className="btn btn-quiet" onClick={goToDaily}>

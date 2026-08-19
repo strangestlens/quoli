@@ -83,12 +83,13 @@ export function HowToPlay({ onClose, settings, onSettings }: Props) {
             to pick it back up, and drop one onto another to swap them.
           </p>
 
-          <h3>Re-rolling</h3>
+          <h3>Getting stuck</h3>
           <p>
-            Some rolls genuinely can't be solved. Re-roll for a fresh twelve, and use the
-            counter in the corner to step back to an earlier set. Everyone gets the same dice
-            each day, and the same re-rolls in the same order — so a roll you found brutal was
-            brutal for everyone. A new puzzle arrives at midnight Eastern.
+            Some sets of twelve genuinely can't be solved. <em>Stuck? New dice</em> throws a
+            completely fresh twelve — it's a fresh start, not the next stage, and nothing
+            carries over. The counter that appears in the corner steps you back to a previous
+            set. Everyone gets the same dice each day, in the same order, so a set you found
+            brutal was brutal for everyone. A new puzzle arrives at midnight Eastern.
           </p>
 
           <h3>Scanning real dice</h3>

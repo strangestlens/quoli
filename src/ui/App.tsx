@@ -14,6 +14,7 @@ import {
   dailySource,
   lettersFor,
   parseSearch,
+  resolveDailyRoll,
   rollPath,
   type PuzzleSource,
 } from '../game/puzzle.ts';
@@ -62,12 +63,16 @@ function initialState(): { state: PlayState; badSetCode: boolean; explicitPuzzle
   );
   const saved = loadPlay(fromUrl);
 
-  // Daily play is keyed by date, not by roll, so the saved record knows which
-  // roll it belongs to. A roll named in the URL wins — that is what lets a
-  // shared link open the roll that was actually solved.
-  const savedRoll = saved?.rollIndex ?? 0;
-  const rollIndex =
-    fromUrl.kind === 'daily' && !explicitRoll ? savedRoll : rollIndexOf(fromUrl);
+  // Daily play is keyed by date, so an absent record means this day has not
+  // been started — and any roll still sitting in the URL belongs to a previous
+  // one. See resolveDailyRoll.
+  const savedRoll = saved?.rollIndex ?? null;
+  const rollIndex = resolveDailyRoll({
+    urlRollIndex: rollIndexOf(fromUrl),
+    explicitRoll,
+    explicitPuzzle,
+    savedRollIndex: savedRoll,
+  });
   const source = fromUrl.kind === 'daily' ? dailySource(fromUrl.dayKey, rollIndex) : fromUrl;
 
   // A saved board is a set of positions for one particular roll's letters.
@@ -136,6 +141,19 @@ function GameView() {
   );
 
   useEffect(() => pruneOldPlays(), []);
+
+  // Put the address bar back in step with what actually opened. Without this a
+  // roll dropped for being stale would still be sitting in the URL, ready to
+  // be read again on the next reload.
+  useEffect(() => {
+    if (state.source.kind !== 'daily' || explicitPuzzle) return;
+    const canonical = rollPath(window.location.pathname, state.source.rollIndex);
+    if (window.location.pathname + window.location.search !== canonical) {
+      window.history.replaceState(null, '', canonical);
+    }
+    // Only on mount: goToRoll keeps the URL in step from then on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     savePlay(state.source, {
@@ -248,11 +266,9 @@ function GameView() {
     setState((s) => ({ ...s, board: EMPTY_BOARD }));
   };
 
+  /** A new day starts at the first set of dice, on a clean URL. */
   const startNewDay = () => {
-    setDayIsStale(false);
-    setSheetOpen(false);
-    resetBoardState();
-    setState(initialState().state);
+    window.location.href = window.location.pathname;
   };
 
   /** Leaving a shared set has to change the URL, or a reload lands back on it. */

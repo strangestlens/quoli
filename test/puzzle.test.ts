@@ -6,6 +6,7 @@ import {
   lettersFor,
   parseSearch,
   puzzlePath,
+  resolveDailyRoll,
   rollPath,
 } from '../src/game/puzzle.ts';
 import { rollFor } from '../src/game/roll.ts';
@@ -158,5 +159,45 @@ describe('past puzzles', () => {
     expect(parseSearch('?puzzle=230&roll=4', AUG_17).source).toEqual(
       dailySource('2026-08-18', 3),
     );
+  });
+});
+
+describe('resolveDailyRoll', () => {
+  const resolve = (over: Partial<Parameters<typeof resolveDailyRoll>[0]> = {}) =>
+    resolveDailyRoll({
+      urlRollIndex: 0,
+      explicitRoll: false,
+      explicitPuzzle: false,
+      savedRollIndex: null,
+      ...over,
+    });
+
+  it('starts a fresh day at the first set of dice', () => {
+    expect(resolve()).toBe(0);
+  });
+
+  it('ignores a roll left in the URL from a previous day', () => {
+    // The reported bug: ?roll=10 survived into the next day and reopened the
+    // tenth set of a puzzle that had never been played.
+    expect(resolve({ urlRollIndex: 9, explicitRoll: true, savedRollIndex: null })).toBe(0);
+  });
+
+  it('resumes the roll saved for the day', () => {
+    expect(resolve({ savedRollIndex: 3 })).toBe(3);
+  });
+
+  it('honours a roll in the URL while that day is in play', () => {
+    expect(resolve({ urlRollIndex: 5, explicitRoll: true, savedRollIndex: 2 })).toBe(5);
+  });
+
+  it('honours the roll on a puzzle named outright, saved or not', () => {
+    // A shared link to one specific set of dice means what it says.
+    expect(
+      resolve({ urlRollIndex: 3, explicitRoll: true, explicitPuzzle: true, savedRollIndex: null }),
+    ).toBe(3);
+  });
+
+  it('opens a named puzzle at its first roll when none is given', () => {
+    expect(resolve({ explicitPuzzle: true, savedRollIndex: null })).toBe(0);
   });
 });

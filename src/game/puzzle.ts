@@ -137,3 +137,31 @@ export function puzzlePath(
 export function rollPath(pathname: string, rollIndex: number): string {
   return rollIndex === 0 ? pathname : `${pathname}?roll=${rollIndex + 1}`;
 }
+
+export interface RollResolution {
+  /** From `?roll=`, zero-based. */
+  readonly urlRollIndex: number;
+  readonly explicitRoll: boolean;
+  readonly explicitPuzzle: boolean;
+  /** The roll saved for that day, or null when nothing is saved for it. */
+  readonly savedRollIndex: number | null;
+}
+
+/**
+ * Which roll a daily should open on.
+ *
+ * `?roll=` is written by re-rolling, as a resume token for that day's session
+ * — but a query string outlives the day it was written for. Coming back the
+ * next morning with `?roll=10` still in the address bar would drop someone
+ * into the tenth set of a puzzle they had never seen, which is not a
+ * continuation of anything. With nothing saved for the day, the token has no
+ * session behind it and is ignored.
+ *
+ * A puzzle named outright is different: that is a deliberate link to one
+ * specific set of dice, and its roll is meant.
+ */
+export function resolveDailyRoll(state: RollResolution): number {
+  if (state.explicitPuzzle) return state.urlRollIndex;
+  if (state.savedRollIndex === null) return 0;
+  return state.explicitRoll ? state.urlRollIndex : state.savedRollIndex;
+}

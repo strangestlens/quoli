@@ -69,5 +69,21 @@ test/         Vitest
 
 ## Roadmap
 
-- **Phase 2** — screen name, local play streak, a settings sheet for toggling rules.
-- **Phase 3** — leaderboard behind a Worker, dictionary validation reusing `src/game/` server-side.
+### Ideas not yet built
+
+**Shake to shuffle.** On a phone, shaking the device would be a natural proxy
+for the tray's shuffle control. Worth knowing before starting: `devicemotion`
+needs a secure context, and on iOS 13+ `DeviceMotionEvent.requestPermission()`
+must be called from inside a user gesture and shows a system prompt — so it
+cannot be enabled silently, and needs a deliberate moment to ask for it
+(tapping the shuffle button being the obvious one). Detection is a threshold on
+the delta between `accelerationIncludingGravity` samples, which will need
+tuning on a real device; two consecutive samples over the threshold avoids a
+single jolt, like setting the phone down, firing it.
+
+**Identity and streaks.** A screen name, a local play streak from the
+day-keyed history already in storage, and eventually a leaderboard behind the
+Worker.
+
+**A custom domain.** `quoli.pages.dev` is a real permanent URL in the
+meantime; `SHARE_URL` in `src/game/share.ts` is the only place it appears.

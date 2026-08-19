@@ -318,6 +318,7 @@ body {
 }
 
 .tray {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -760,4 +761,42 @@ body {
    one line; the other two have short labels and can give it up. */
 .btn-wide {
   flex: 1.35;
+}
+
+/* A quiet way to see the same twelve letters in a different arrangement. */
+.tray-shuffle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  appearance: none;
+  border: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: var(--muted);
+  background: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition:
+    opacity 0.12s ease,
+    transform 0.08s ease;
+}
+
+.tray-shuffle:hover {
+  opacity: 1;
+}
+
+.tray-shuffle:active {
+  opacity: 1;
+  transform: scale(0.88);
+}
+
+.tray-shuffle:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: Typecheck, tests, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Read the version from .node-version rather than pinning it here, so the
+      # pin lives in one place and CI cannot drift from what the dev machine runs.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Three projects — app, worker and the Vite/Vitest configs. `tsc -b` is the
+      # only thing that typechecks functions/, so a Worker-only change is unchecked
+      # without it.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # public/words.txt is committed but generated, and the tests read the real
+      # file. A change to data/ or the build script that is not accompanied by a
+      # regenerated list leaves the tests asserting against the old one — which
+      # passes locally and means nothing. Fail instead.
+      - name: Word list is current
+        run: |
+          npm run words
+          git diff --exit-code public/words.txt
+
+      - name: Run tests
+        run: npm test
+
+      # typecheck does not exercise the Vite bundle, so a broken config or an
+      # import that only resolves in dev would ship unnoticed.
+      - name: Build
+        run: npm run build

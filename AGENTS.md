@@ -85,9 +85,8 @@ npm run build && npx wrangler pages dev
 That serves `dist/` plus `functions/` on port 8788 with the KV binding
 attached. It has no HMR, so rebuild to see changes.
 
-Note that `.wrangler/` — local Miniflare state, including the KV store — is
-currently tracked in git, so running it dirties the working tree. Check the
-`.wrangler/**` churn out of any commit; it is not part of the change.
+It writes local Miniflare state — including the KV store — to `.wrangler/`,
+which is gitignored. Delete that directory to reset the per-IP scan counters.
 
 `/api/scan` additionally needs an API key. Put it in `.dev.vars` (gitignored,
 never commit it):
@@ -170,10 +169,18 @@ projects: `tsconfig.app.json` (src + test, DOM libs),
 Vite/Vitest configs). `tsc -b` builds all three; a change to `functions/` is
 only typechecked by the worker project.
 
-**No linter, no formatter.** There is no ESLint or Prettier config — the
-`eslint-disable` comment in `App.tsx:155` is vestigial. `npm run typecheck` and
-`npm test` are the only automated gates. Match the surrounding style by hand:
-two-space indent, single quotes, trailing commas, ~96 columns.
+**No linter, no formatter, but there is CI.** There is no ESLint or Prettier
+config — the `eslint-disable` comment in `App.tsx:155` is vestigial. Match the
+surrounding style by hand: two-space indent, single quotes, trailing commas,
+~96 columns; style is enforced by review and nothing else.
+
+`.github/workflows/ci.yml` runs on every push and pull request, on the Node in
+`.node-version`: typecheck, then a check that `public/words.txt` still matches
+what `data/` and the build script generate, then the tests, then a full build.
+The word-list step is there because the list is generated but committed and
+`test/dictionary.test.ts` reads the real file — a change to `data/` without a
+regenerated list leaves the tests asserting against the old one, which passes
+locally and proves nothing.
 
 **Comments explain why, not what.** This codebase's comments are unusually
 load-bearing — they record the bug that motivated the line, the platform
@@ -265,10 +272,13 @@ Update AGENTS.md in the same commit as the change, not afterwards. Specifically:
 - **A gotcha that cost you more than ten minutes** → wherever it fits. That is
   what this file is for; the `npm run dev` / `/api` section exists because it
   is exactly that kind of trap.
-- **Tooling arriving** — a linter, a formatter, CI — → the conventions section,
-  replacing the note that says there isn't one.
+- **Tooling arriving** — a linter, a formatter, a new CI job — → the conventions
+  section, alongside what CI already runs.
+- **A user-visible change** → an entry in [CHANGELOG.md](CHANGELOG.md) under
+  `## [Unreleased]`, in the game's own vocabulary. Internal refactors do not
+  need one.
 
-Product and gameplay reasoning belongs in [README.md](README.md), design
-history belongs in commit messages, and the *why* behind a specific line
-belongs in a comment next to it. This file is for what an agent needs before it
-starts editing.
+Product and gameplay reasoning belongs in [README.md](README.md), what shipped
+belongs in [CHANGELOG.md](CHANGELOG.md), design history belongs in commit
+messages, and the *why* behind a specific line belongs in a comment next to it.
+This file is for what an agent needs before it starts editing.

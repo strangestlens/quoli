@@ -17,3 +17,14 @@ coverage
 
 # Local Worker secrets — never commit
 .dev.vars
+
+# Claude Code internals — ignore everything except project-wide config
+.claude/*
+!.claude/launch.json
+!.claude/settings.json
+!.claude/lord-kali.toml
+!.claude/skills/
+!.claude/skills/**
+
+# Local Miniflare state written by `wrangler pages dev`
+.wrangler/

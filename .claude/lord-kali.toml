@@ -1,0 +1,26 @@
+# GitHub CLI rules for the quoli project.
+# gh pr create and PR comments require explicit permission.
+
+[[bash.rules]]
+command = "gh"
+args = "pr create{, **}"
+decision = "ask"
+reason = "Confirm before creating PR — approve in the UI to proceed"
+
+[[bash.rules]]
+command = "gh"
+args = "pr comment{, **}"
+decision = "ask"
+reason = "Confirm before adding PR comment — approve in the UI to proceed"
+
+[[bash.rules]]
+command = "gh"
+decision = "allow"
+
+# `npm run deploy` pushes straight to the live Cloudflare Pages project — there is
+# no staging environment between it and quoli.pages.dev.
+[[bash.rules]]
+command = "npm"
+args = "run deploy{, **}"
+decision = "ask"
+reason = "Confirm before deploying to quoli.pages.dev — approve in the UI to proceed"

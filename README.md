@@ -21,6 +21,9 @@ Both are the same `RuleSet` with different flags (`STRICT_RULES` and `FREE_RULES
 
 ## Development
 
+[AGENTS.md](AGENTS.md) is the working guide: every command, the parts of the
+codebase that are frozen and why, the conventions, and the local-dev traps.
+
 ```bash
 npm install
 ```

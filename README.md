@@ -9,7 +9,7 @@ Quoli is a web take on [Q-Less](https://qlessgame.com/), Tom Sturdevant's pocket
 - **One puzzle a day.** The roll is derived from the date in US Eastern time, so everyone sees the same dice and the puzzle turns over at midnight Eastern rather than at a different moment in every timezone.
 - **Re-rolls are deterministic too.** If today's first set is unsolvable, roll again — and set 2 will be the same twelve letters for everyone, and still the same after a reload. Nothing about the day's sequence is random at runtime.
 - **Drag or tap.** Drag a die onto the grid, or tap it and tap a destination. The board auto-fits as it grows.
-- **Share without spoiling.** The default share is a silhouette of your grid. There's an opt-in "copy with letters" for chats where everyone has already played.
+- **Share the dice, or the grid.** The set is always shareable — twelve letters and a link that opens exactly those dice, which is the whole point of a custom set and a fine way to invite someone into the day's. Once a board is finished there are two more options in the same sheet: a silhouette of your grid, and an opt-in "with letters" for chats where everyone has already played.
 
 ## Game modes
 
@@ -64,7 +64,7 @@ src/game/     pure, DOM-free, fully tested — reusable server-side later
   board.ts    sparse grid model
   words.ts    across/down run extraction
   rules.ts    configurable RuleSet + analysis
-  share.ts    silhouette / fullwidth-letter / ASCII encoders
+  share.ts    set / silhouette / fullwidth-letter encoders
   storage.ts  versioned localStorage
 src/ui/       React components and the pointer-event drag system
 test/         Vitest

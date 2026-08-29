@@ -1,4 +1,5 @@
 import { bounds, tileAt, type Board } from './board.ts';
+import { puzzlePath } from './puzzle.ts';
 
 export const SHARE_URL = 'https://quoli.pages.dev';
 
@@ -33,21 +34,27 @@ function header(meta: ShareMeta): string {
 }
 
 /**
- * A custom set's link carries the dice in it, so whoever opens it gets the
- * same twelve letters and an empty board. A daily link carries the set, so
- * a friend lands on the one that was actually solved rather than the first.
+ * The link that hands over the dice and nothing else.
+ *
+ * A custom set carries its twelve letters in the code. A daily names the
+ * puzzle outright rather than leaning on "today", because the message beside
+ * it lists the letters — and a bare link would quietly serve different ones
+ * to anyone who opened it after midnight.
  */
-function link(meta: ShareMeta): string {
+function setLink(subject: ShareSubject): string {
   if (!SHARE_URL) return '';
-  if (meta.solveCode) return `${SHARE_URL}/?solve=${meta.solveCode}`;
-  if (meta.subject.kind === 'custom') return `${SHARE_URL}/?set=${meta.subject.code}`;
-  return meta.subject.rollIndex === 0
-    ? SHARE_URL
-    : `${SHARE_URL}/?roll=${meta.subject.rollIndex + 1}`;
+  return subject.kind === 'custom'
+    ? `${SHARE_URL}/?set=${subject.code}`
+    : SHARE_URL + puzzlePath('/', subject.puzzleNumber, subject.rollIndex);
 }
 
-function withFooter(lines: string[], meta: ShareMeta): string {
-  const url = link(meta);
+/** A finished grid points at itself; an unfinished one can only offer the dice. */
+function gridLink(meta: ShareMeta): string {
+  if (!SHARE_URL) return '';
+  return meta.solveCode ? `${SHARE_URL}/?solve=${meta.solveCode}` : setLink(meta.subject);
+}
+
+function withFooter(lines: string[], url: string): string {
   if (url) lines.push('', url);
   return lines.join('\n');
 }
@@ -90,11 +97,32 @@ export function letterGrid(board: Board, letters: readonly string[]): string[] {
 }
 
 /**
- * The default share: silhouette only.
+ * The dice on their own, sorted — the same order `setCode` uses, so the row
+ * reads as the set's identity rather than as a hint about where anything goes.
+ */
+export function setLine(letters: readonly string[]): string {
+  return [...letters].sort().map(toFullwidth).join('');
+}
+
+/**
+ * Share the dice: an invitation, not a result.
+ *
+ * Always available, because it gives nothing away — everyone playing the
+ * daily gets these twelve anyway, and a custom set is worth nothing to a
+ * friend without them.
+ */
+export function setShare(letters: readonly string[], meta: ShareMeta): string {
+  return withFooter(
+    [header(meta), 'Twelve dice, one grid.', '', setLine(letters)],
+    setLink(meta.subject),
+  );
+}
+
+/**
+ * The default way to share a finished board: silhouette only.
  *
  * Everyone gets the same puzzle each day, so posting the letters spoils it.
- * This carries the shape and the stats without giving the answer away — and
- * for a custom set, the link hands over the dice without the solution.
+ * This carries the shape and the stats without giving the answer away.
  */
 export function shapeShare(board: Board, meta: ShareMeta): string {
   return withFooter(
@@ -104,7 +132,7 @@ export function shapeShare(board: Board, meta: ShareMeta): string {
       '',
       ...shapeGrid(board),
     ],
-    meta,
+    gridLink(meta),
   );
 }
 
@@ -121,7 +149,7 @@ export function letterShare(
   letters: readonly string[],
   meta: ShareMeta,
 ): string {
-  return withFooter([header(meta), '', ...letterGrid(board, letters)], meta);
+  return withFooter([header(meta), '', ...letterGrid(board, letters)], gridLink(meta));
 }
 
 function toFullwidth(ch: string): string {

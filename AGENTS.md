@@ -58,7 +58,7 @@ npm run build
 | --- | --- |
 | `dev` | Vite on port 5173, listening on the LAN so a phone can reach it |
 | `dev:https` | Same, over self-signed TLS — needed for the Clipboard API on a LAN address |
-| `test` / `test:watch` | Vitest (185 tests, ~3s) |
+| `test` / `test:watch` | Vitest (191 tests, ~3s) |
 | `typecheck` | `tsc -b` across all three projects |
 | `build` | `npm run words` then `tsc -b` then `vite build` → `dist/` |
 | `words` | Regenerates `public/words.txt` from `data/` + the `wordlist-english` package |

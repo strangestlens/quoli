@@ -615,7 +615,10 @@ body {
 
 .segmented {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Auto columns rather than a fixed pair: the share sheet offers three
+     choices on a finished board and two everywhere else. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 3px;
   padding: 3px;
   margin-top: 4px;
@@ -628,7 +631,9 @@ body {
   appearance: none;
   border: none;
   border-radius: 8px;
-  padding: 8px 6px;
+  padding: 8px 4px;
+  /* Three segments in a 400px sheet leaves no room for a wrapped label. */
+  white-space: nowrap;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;

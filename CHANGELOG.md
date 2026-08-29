@@ -30,6 +30,9 @@ are listed under "Frozen things" in [`AGENTS.md`](AGENTS.md).
 - Each new day starts on the first set of dice, and re-rolling no longer presents itself
   as step two of the game.
 - "Set" is the word for the dice you were dealt, replacing the phase-1 naming.
+- Sharing offers three things rather than two: the dice, the shape you made of them, or
+  the answer. The dice are always shareable, so Share no longer waits for a finished
+  board, and a daily's set link names the puzzle outright rather than leaning on "today".
 
 ### Fixed
 - The drop target now resolves from the same value that draws the ghost, so the highlight

@@ -417,11 +417,12 @@ function GameView() {
           </button>
         )}
 
+        {/* Never disabled: there is always a set to hand someone, finished
+            or not. The sheet decides what else it can offer. */}
         <button
           type="button"
           className="btn btn-primary"
           onClick={() => setSheetOpen(true)}
-          disabled={!analysis.complete}
         >
           Share
         </button>

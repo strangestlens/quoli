@@ -3,6 +3,8 @@ import { EMPTY_BOARD, place } from '../src/game/board.ts';
 import {
   letterGrid,
   letterShare,
+  setLine,
+  setShare,
   shapeGrid,
   shapeShare,
   SHARE_URL,
@@ -28,6 +30,9 @@ const CUSTOM: ShareMeta = {
   tileCount: 10,
 };
 
+/** A full set, since the dice share is about all twelve rather than a board. */
+const TWELVE = ['P', 'A', 'C', 'N', 'L', 'E', 'C', 'Y', 'L', 'N', 'P', 'R'];
+
 describe('shapeShare', () => {
   it('gives away the shape and nothing else', () => {
     expect(shapeShare(SAMPLE, META)).toBe(
@@ -40,7 +45,7 @@ describe('shapeShare', () => {
         '⬜🟩⬜⬜🟩',
         '⬜🟩⬜⬜🟩',
         '',
-        `${SHARE_URL}/?roll=2`,
+        `${SHARE_URL}/?puzzle=228&roll=2`,
       ].join('\n'),
     );
   });
@@ -58,18 +63,58 @@ describe('shapeShare', () => {
   });
 });
 
-describe('daily links', () => {
-  it('carries the roll so a friend lands on the one that was solved', () => {
-    expect(shapeShare(SAMPLE, META)).toContain(`${SHARE_URL}/?roll=2`);
+describe('setShare', () => {
+  it('hands over the twelve dice and a link to them', () => {
+    expect(setShare(TWELVE, CUSTOM)).toBe(
+      [
+        'Quoli · custom set',
+        'Twelve dice, one grid.',
+        '',
+        'ＡＣＣＥＬＬＮＮＰＰＲＹ',
+        '',
+        `${SHARE_URL}/?set=ACCELLNNPPRY`,
+      ].join('\n'),
+    );
   });
 
-  it('stays bare on roll 1, where the date alone is enough', () => {
-    expect(shapeShare(SAMPLE, FIRST_ROLL)).toContain(SHARE_URL);
-    expect(shapeShare(SAMPLE, FIRST_ROLL)).not.toContain('?roll=');
+  it('sorts the dice, so the row matches the set code rather than the tray', () => {
+    expect(setLine(TWELVE)).toBe(setLine([...TWELVE].reverse()));
+    expect(setLine(TWELVE)).toBe('ＡＣＣＥＬＬＮＮＰＰＲＹ');
+  });
+
+  it('uses only fullwidth forms', () => {
+    expect(setLine(TWELVE)).toMatch(/^[Ａ-Ｚ]+$/);
+  });
+
+  it('shows no grid, finished or not', () => {
+    const text = setShare(TWELVE, { ...META, solveCode: 'ABC' });
+    expect(text).not.toContain('🟩');
+    expect(text).not.toContain('　');
+  });
+
+  it('offers the dice rather than the solution, even from a finished board', () => {
+    const text = setShare(TWELVE, { ...META, solveCode: 'ABC' });
+    expect(text).not.toContain('?solve=');
+    expect(text).toContain(`${SHARE_URL}/?puzzle=228&roll=2`);
+  });
+});
+
+describe('daily links', () => {
+  // The message names the puzzle and, for a set share, lists its letters. A
+  // bare link would hand over a different twelve to anyone opening it after
+  // midnight, so every daily link names the puzzle outright.
+  it('names the puzzle and the roll', () => {
+    expect(shapeShare(SAMPLE, META)).toContain(`${SHARE_URL}/?puzzle=228&roll=2`);
+  });
+
+  it('drops the roll on the first set, where the puzzle number is enough', () => {
+    expect(shapeShare(SAMPLE, FIRST_ROLL)).toContain(`${SHARE_URL}/?puzzle=228`);
+    expect(shapeShare(SAMPLE, FIRST_ROLL)).not.toContain('roll=');
   });
 
   it('never carries a roll for a custom set', () => {
-    expect(shapeShare(SAMPLE, CUSTOM)).not.toContain('?roll=');
+    expect(shapeShare(SAMPLE, CUSTOM)).not.toContain('roll=');
+    expect(setShare(TWELVE, CUSTOM)).not.toContain('roll=');
   });
 });
 
@@ -88,8 +133,8 @@ describe('solve links', () => {
     expect(text.split('\n').slice(2, 6).join('')).not.toMatch(/[A-Z]/);
   });
 
-  it('replaces the roll link rather than sitting alongside it', () => {
-    expect(shapeShare(SAMPLE, SOLVED)).not.toContain('?roll=');
+  it('replaces the puzzle link rather than sitting alongside it', () => {
+    expect(shapeShare(SAMPLE, SOLVED)).not.toContain('?puzzle=');
   });
 
   it('replaces a custom set link too', () => {
@@ -98,8 +143,10 @@ describe('solve links', () => {
     expect(shapeShare(SAMPLE, solvedCustom)).toContain('?solve=AB-CD');
   });
 
-  it('falls back to the roll link while a board is unfinished', () => {
-    expect(shapeShare(SAMPLE, { ...META, solveCode: undefined })).toContain('?roll=2');
+  it('falls back to the set link while a board is unfinished', () => {
+    expect(shapeShare(SAMPLE, { ...META, solveCode: undefined })).toContain(
+      '?puzzle=228&roll=2',
+    );
   });
 });
 
@@ -119,8 +166,12 @@ describe('custom sets', () => {
     expect(text).toContain('🟩');
   });
 
-  it('carries the code on both formats', () => {
-    for (const text of [shapeShare(SAMPLE, CUSTOM), letterShare(SAMPLE, LETTERS, CUSTOM)]) {
+  it('carries the code on every format', () => {
+    for (const text of [
+      shapeShare(SAMPLE, CUSTOM),
+      letterShare(SAMPLE, LETTERS, CUSTOM),
+      setShare(TWELVE, CUSTOM),
+    ]) {
       expect(text).toContain('?set=ACCELLNNPPRY');
     }
   });
@@ -137,7 +188,7 @@ describe('letterShare', () => {
         '　Ａ　　Ｏ',
         '　Ｍ　　Ｄ',
         '',
-        `${SHARE_URL}/?roll=2`,
+        `${SHARE_URL}/?puzzle=228&roll=2`,
       ].join('\n'),
     );
   });
@@ -160,10 +211,11 @@ describe('grids on their own', () => {
   it('are exactly the rows the share embeds, with no header or link', () => {
     expect(shapeGrid(SAMPLE)).toEqual(['⬜🟩⬜⬜⬜', '🟩🟩🟩🟩🟩', '⬜🟩⬜⬜🟩', '⬜🟩⬜⬜🟩']);
     expect(letterGrid(SAMPLE, LETTERS)).toEqual(['　Ｃ　　　', 'ＴＲＡＩＮ', '　Ａ　　Ｏ', '　Ｍ　　Ｄ']);
+    expect(setLine(TWELVE)).toBe('ＡＣＣＥＬＬＮＮＰＰＲＹ');
   });
 
   it('contain no link', () => {
-    for (const line of [...shapeGrid(SAMPLE), ...letterGrid(SAMPLE, LETTERS)]) {
+    for (const line of [...shapeGrid(SAMPLE), ...letterGrid(SAMPLE, LETTERS), setLine(TWELVE)]) {
       expect(line).not.toContain('http');
     }
   });
@@ -178,6 +230,14 @@ describe('empty board', () => {
     const meta = { ...META, wordCount: 0, tileCount: 0 };
     expect(shapeShare(EMPTY_BOARD, meta)).toContain('0 letters · 0 words');
     expect(shapeShare(EMPTY_BOARD, meta)).not.toContain('🟩');
+  });
+
+  // Nothing is placed, but the dice are the dice — this is the share that has
+  // to work before a single tile goes down.
+  it('still shares the set in full', () => {
+    expect(setShare(TWELVE, { ...META, wordCount: 0, tileCount: 0 })).toContain(
+      'ＡＣＣＥＬＬＮＮＰＰＲＹ',
+    );
   });
 });
 
